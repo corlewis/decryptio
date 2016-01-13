@@ -7,7 +7,7 @@ Q = require('q')
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 2
+VERSION = 1
 
 send_game_list = () ->
     Game.find {}, (err, games) ->
@@ -27,12 +27,7 @@ send_game_info = (game, to = undefined) ->
         state           : game.state
         options         : game.gameOptions
         id              : game.id
-        roles           : game.roles
-        currentLeader   : game.currentLeader
-        finalLeader     : game.finalLeader
-        currentMission  : game.currentMission
-        lady            : game.lady
-        pastLadies      : game.pastLadies
+        currentTeam     : game.currentTeam
         reconnect_user  : game.reconnect_user
         reconnect_vote  : game.reconnect_vote
         version         : VERSION
@@ -50,55 +45,33 @@ send_game_info = (game, to = undefined) ->
             id          : p.id
             name        : p.name
             order       : p.order
+            spy         : p.spy
+            team        : p.team
 
     data.players = players
 
     #Hide unfinished votes
-    votes = []
-    for v in game.votes
-        dv = {mission: v.mission, team: v.team, accepted: v.accepted, rejected: v.rejected, votes: []}
-        if v.votes.length == game.players.length
-            dv.votes = v.votes
-        else
-            dv.votes = []
-            for pv in v.votes
-                dv.votes.push {id: pv.id}
-        votes.push dv
+    words = []
+    words_secret = []
+    for w in game.words
+        dw = {word: w.word, guessed: w.guessed, kind: undefined}
+        words.push dw
+        dw.kind = w.kind
+        words_secret.push dw
 
-    data.votes = votes
-
-    #Hide individual quest cards
-    missions = []
-    for m in game.missions
-        numfails = 0
-        players = []
-        for p in m.players
-            if !p.success then numfails += 1
-            players.push p.id
-        dm = {numReq:m.numReq, failsReq: m.failsReq, status: m.status, numfails: numfails, players: players}
-        missions.push dm
-
-    data.missions = missions
-
-    if game.state == GAME_FINISHED
-        data.evilWon = game.evilWon
-        if game.assassinated
-            data.assassinated = undefined
-            for p in game.players
-                if p.id.equals(game.assassinated)
-                    data.assassinated = p.name
 
     #Add in secret info specific to player as we go
     for s in socks
         i = s.player
-        data.players[i].role = game.players[i].role
-        data.players[i].isEvil = game.players[i].isEvil
         data.players[i].info = game.players[i].info
         data.me = data.players[i]
+        if i.spy
+            data.words = words_secret
+        else
+            data.words = words
         if s.socket
             s.socket.emit('gameinfo', data)
-        data.players[i].role = undefined
-        data.players[i].isEvil = undefined
+        data.words = []
         data.players[i].info = []
 
 #
@@ -276,7 +249,7 @@ io.on 'connection', (socket) ->
                 game.save()
                 send_game_info(game)
 
-                sock.emit("reconnectdenied")
+                sock.emit('reconnectdenied')
 
     socket.on 'newgame', (game) ->
         player = socket.player
@@ -329,7 +302,7 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             if game.players[0].socket == socket.id
-                if game.players.length >= 5
+                if game.players.length >= 4
                     game.state = GAME_PREGAME
 
             game.save()
@@ -356,47 +329,30 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             order = data.order
-            game.gameOptions.mordred = data.options.mordred
-            game.gameOptions.oberon = data.options.oberon
-            game.gameOptions.showfails = data.options.showfails
-            game.gameOptions.ladylake = data.options.ladylake
-            game.gameOptions.ptrc = data.options.ptrc || data.options.hidden_ptrc
-            game.gameOptions.hidden_ptrc = data.options.hidden_ptrc
-            game.gameOptions.danmode = data.options.danmode
-
+            red_id = data.red_id
+            blue_id = data.blue_id
+            
             #Sanity check
-            return if Object.keys(order).length + 1 != game.players.length
+            return if Object.keys(order).length != game.players.length
 
-            game.start_game(order)
+            game.start_game(order, red_id, blue_id)
             game.save()
             send_game_info(game)
 
-    socket.on 'propose_mission', (data) ->
+    socket.on 'make_guess', (data) ->
         player = socket.player
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
-            mission = game.missions[game.currentMission]
 
-            if game.state == GAME_PROPOSE
-                return if data.length != mission.numReq
-                game.votes.push
-                    mission  : game.currentMission
-                    team     : data
-                    accepted : []
-                    rejected : []
-                    votes    : []
-                game.state = GAME_VOTE
-            else
-                return if data.length != 1
-                prevVote = game.votes[game.votes.length - 1]
-                game.votes.push
-                    mission  : game.currentMission
-                    team     : data
-                    accepted : prevVote.accepted
-                    rejected : prevVote.rejected
-                    votes    : []
-                game.state = GAME_PTRC_VOTE
+            if game.state == GAME_VOTE || game.state == GAME_CLUE
+                for w in game.words
+                    if w.word == data
+                        w.guessed = true
+            if game.currentTeam == TEAM_BLUE
+                game.currentTeam = TEAM_RED
+            else if game.currentTeam == TEAM_RED
+                game.currentTeam = TEAM_BLUE
             game.save()
             send_game_info(game)
 
@@ -481,110 +437,6 @@ io.on 'connection', (socket) ->
                     else
                         game.state = GAME_PTRC_PROPOSE
                         game.set_next_leader(false)
-
-            game.save()
-            send_game_info(game)
-
-    socket.on 'quest', (data) ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-            currVote = game.votes[game.votes.length - 1]
-
-            #Check that the player is on the mission team
-            for t in currVote.team
-                in_team = true if player._id.equals(t)
-            return if not in_team
-
-            #Check that the player hasn't already "put in a card"
-            currMission = game.missions[game.currentMission]
-            for p in currMission.players
-                return if player._id.equals(p.id)
-
-            #Check that player is allowed to fail if they did
-            if data == false
-                p = game.get_player(player._id)
-                return if not p
-                if not p.isEvil
-                    data = true
-
-            currMission.players.push
-                id          : player._id
-                success     : data
-
-            if currMission.players.length == currMission.numReq
-                #See if the mission succeeded or failed
-                fails = ((if p.success then 0 else 1) for p in currMission.players)
-                fails = fails.sum()
-                if fails >= currMission.failsReq
-                    currMission.status = 1
-                else
-                    currMission.status = 2
-
-                game.check_for_game_end()
-                game.save()
-                send_game_info(game)
-            else
-                game.save()
-                send_game_info(game)
-
-    socket.on 'assassinate', (t) ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-            return if game.state != GAME_ASSASSIN
-
-            target = game.get_player(t)
-            return if not target
-
-            game.state = GAME_FINISHED
-            game.assassinated = target.id
-            if target.role == "Merlin"
-                game.evilWon = true
-            else
-                game.evilWon = false
-
-            game.save()
-            send_game_info(game)
-
-    socket.on 'early_assassinate', () ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-
-            #Check that player is allowed to assassinate
-            p = game.get_player(player._id)
-            return if not p || p.role != "Assassin" || game.state == GAME_ASSASSIN
-
-            game.currentMission += 1
-            game.currentLeader = p.id
-            game.state = GAME_ASSASSIN
-
-            game.save()
-            send_game_info(game)
-
-    socket.on 'reveal', (t) ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-            return if game.state != GAME_LADY
-
-            target = game.get_player(t)
-            return if not target || target.id in game.pastLadies
-
-            game.pastLadies.push target.id
-            game.state = GAME_PROPOSE
-            game.lady = target.id
-
-            for p in game.players
-                if p.id.equals(player._id)
-                    p.info.push
-                        otherPlayer: target.name
-                        information: if target.isEvil then "evil" else "good"
 
             game.save()
             send_game_info(game)

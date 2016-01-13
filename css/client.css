@@ -34,6 +34,28 @@ a {
 #chosenoptions {
     display: none;
 }
+
+.redteam {
+    color: red;
+}
+
+.blueteam {
+    color: blue;
+}
+
+.noteam {
+    color: grey;
+}
+
+.blackteam {
+    color: black;
+    text-decoration: underline;
+}
+
+.guessed {
+    text-decoration: line-through;
+}
+
 #quest {
     display: none;
 }
@@ -112,6 +134,18 @@ a {
 .btn-panel {
     width: 90%;
     margin: auto;
+}
+
+ul.wordlist {
+    margin-bottom:10px;
+    overflow:hidden;
+    border-top:1px;
+}
+
+li.wordlist {
+    padding: 5px 5px;
+    width:50%;
+    float:left; 
 }
 
 li.success {
