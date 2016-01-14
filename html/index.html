@@ -47,7 +47,14 @@
 
         <div id="lobby">
             <h2 style="text-align: center">Codewords</h2>
-            <ul class="list-group" id="gamelist"></ul>
+            <div>
+                <h3 id="newgameheader" style="text-align: center">New Games</h3>
+                <ul class="list-group" id="newgamelist"></ul>
+            </div>
+            <div id="oldgamelobby">
+                <h3 style="text-align: center">In-Progress Games</h3>
+                <ul class="list-group" id="oldgamelist"></ul>
+            </div>
             <button class="btn btn-lg btn-primary btn-block" id="btn_newgame">New Game</button>
             <br />
             <button class="btn btn-lg btn-warning btn-block" id="btn_changename">Change Name</button>
@@ -61,13 +68,6 @@
             <button class="btn btn-lg btn-primary btn-block" id="btn_ready">Start Game</button>
             <button class="btn btn-lg btn-danger btn-block" id="btn_leavelobby">Leave Game</button>
 
-            <div class="panel panel-default" id="gameoptions">
-                <div class="panel-heading">
-                    <div class="panel-title">Options</div>
-                </div>
-                <ul class="list-group options-list">
-                </ul>
-            </div>
 
             <button class="btn btn-lg btn-primary btn-block" id="btn_start_game">Start Game</button>
 

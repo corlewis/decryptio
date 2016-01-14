@@ -16,6 +16,7 @@ GAME_FINISHED      = 9
 
 TEAM_RED           = 1
 TEAM_BLUE          = 2
+TEAM_NONE          = 3
 
 WORD_RED           = 1
 WORD_BLUE          = 2
@@ -127,6 +128,7 @@ gameSchema.methods.add_player = (p) ->
         name : p.name
         socket : p.socket
         spy : undefined
+        team : TEAM_NONE
         info : []
     return true
 
@@ -237,8 +239,6 @@ gameSchema.methods.check_for_game_end = () ->
             this.winningTeam = TEAM_BLUE
         else if this.currentTeam == TEAM_BLUE
             this.winningTeam = TEAM_RED
-    console.log('red',red)
-    console.log('blue',blue)
 
     if not (this.winningTeam == 0)
         this.state = GAME_FINISHED

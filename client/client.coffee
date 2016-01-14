@@ -34,6 +34,7 @@ jQuery ->
     
     TEAM_RED           = 1
     TEAM_BLUE          = 2
+    TEAM_NONE          = 3
     
     WORD_RED           = 1
     WORD_BLUE          = 2
@@ -89,7 +90,10 @@ jQuery ->
         return if $("#game").is(":visible")
 
         $("#lobby").show()
-        $("#gamelist").empty()
+        $("#newgamelist").empty()
+        $("#newgameheader").hide()
+        $("#oldgamelobby").hide()
+        $("#oldgamelist").empty()
         for g in data.gamelist
             do (g) ->
                 join_btn = $('<a>')
@@ -98,8 +102,12 @@ jQuery ->
                     .append($('<span>').addClass("pull-right").text(g.num_players))
                     .click () ->
                         socket.emit 'joingame', { game_id : g.id }
-
-                $("#gamelist").append(join_btn)
+                if g.state == GAME_LOBBY
+                    $("#newgamelist").append(join_btn)
+                else
+                    $("#newgameheader").show()
+                    $("#oldgamelobby").show()
+                    $("#oldgamelist").append(join_btn)
 
     socket.on 'kicked', () ->
         $("#pregame").hide()
@@ -311,6 +319,8 @@ jQuery ->
                             $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn.")
                     else
                          $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
+                    if me.team == TEAM_NONE
+                            $("#leaderinfo").html("You are spectating.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""

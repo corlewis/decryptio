@@ -15,11 +15,19 @@ send_game_list = () ->
             version : VERSION
         gamelist = []
         for g in games
-            if (g.state == GAME_LOBBY) then gamelist.push
+            game = 
                 id : g.id
                 name : g.name()
                 num_players : g.players.length
+                state : g.state
+            has_active = false
+            for p in g.players
+                if io.sockets.sockets[p.socket]
+                    has_active = true
+            if (g.state == GAME_LOBBY || (g.state != GAME_FINISHED && g.state != GAME_PREGAME && has_active))
+                gamelist.push game
         data.gamelist = gamelist
+        
         io.sockets.in('lobby').emit('gamelist', data)
 
 send_game_info = (game, to = undefined) ->
@@ -274,7 +282,17 @@ io.on 'connection', (socket) ->
 
         Game.findById game_id, (err, game) ->
             return if not game
-            game.add_player player
+            if game.state == GAME_PREGAME || game.state == GAME_FINISHED
+                send_game_list()
+                return
+            rejoined = false
+            for p in game.players
+                if p.id.equals(player_id)
+                    p.socket = socket.id
+                    p.left = false
+                    rejoined = true
+            if not rejoined
+                game.add_player player
             #TODO check if player was actually added
             game.save (err, game) ->
                 socket.leave('lobby')
