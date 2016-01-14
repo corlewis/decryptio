@@ -329,13 +329,25 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             order = data.order
-            red_id = data.red_id
-            blue_id = data.blue_id
+            teams = data.teams
             
             #Sanity check
             return if Object.keys(order).length != game.players.length
 
-            game.start_game(order, red_id, blue_id)
+            game.start_game(order, teams)
+            game.save()
+            send_game_info(game)
+
+    socket.on 'pass_turn', (data) ->
+        player = socket.player
+        return if not player
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+            if game.currentTeam == TEAM_RED
+                game.currentTeam = TEAM_BLUE
+            else if game.currentTeam == TEAM_BLUE
+                game.currentTeam = TEAM_RED
+
             game.save()
             send_game_info(game)
 
@@ -348,11 +360,21 @@ io.on 'connection', (socket) ->
             if game.state == GAME_VOTE || game.state == GAME_CLUE
                 for w in game.words
                     if w.word == data
+                        if w.guessed
+                            return
                         w.guessed = true
-            if game.currentTeam == TEAM_BLUE
+                        kind = w.kind
+
+            if kind == WORD_RED
                 game.currentTeam = TEAM_RED
-            else if game.currentTeam == TEAM_RED
+            else if kind == WORD_BLUE
                 game.currentTeam = TEAM_BLUE
+            else if kind == WORD_GREY && game.currentTeam == TEAM_RED
+                game.currentTeam = TEAM_BLUE
+            else if kind == WORD_GREY && game.currentTeam == TEAM_BLUE
+                game.currentTeam = TEAM_RED
+
+            game.check_for_game_end()
             game.save()
             send_game_info(game)
 

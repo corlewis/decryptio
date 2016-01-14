@@ -14,13 +14,13 @@ GAME_CLUE          = 2
 GAME_VOTE          = 3
 GAME_FINISHED      = 9
 
-TEAM_RED           = 0
-TEAM_BLUE          = 1
+TEAM_RED           = 1
+TEAM_BLUE          = 2
 
-WORD_RED           = 0
-WORD_BLUE          = 1
-WORD_GREY          = 2
-WORD_BLACK         = 3
+WORD_RED           = 1
+WORD_BLUE          = 2
+WORD_GREY          = 3
+WORD_BLACK         = 4
 
 ObjectId = mongoose.Schema.Types.ObjectId
 
@@ -107,6 +107,7 @@ gameSchema = new mongoose.Schema
         ]
     ]
     currentTeam     : Number
+    winningTeam     : Number
     reconnect_vote  : [Number]
     reconnect_user  : String
     reconnect_sock  : String
@@ -204,9 +205,9 @@ gameSchema.methods.setup_words = () ->
             guessed : false
     for i in [17..23]
         this.words.push
-           word : words[i]
-           kind : WORD_GREY
-           guessed : false
+            word : words[i]
+            kind : WORD_GREY
+            guessed : false
     this.words.push
             word : words[24]
             kind : WORD_BLACK
@@ -221,21 +222,37 @@ gameSchema.methods.setup_words = () ->
 
 gameSchema.methods.check_for_game_end = () ->
     red = ((if w.kind == WORD_RED and w.guessed then 1 else 0) for w in this.words)
-    blue = ((if w.kind == WORD_BLUE and w.guessed then 1 else 0) for w in this.words)
+    red = red.sum()
+    blue = ((if w.kind == WORD_BLUE and w.guessed then 1 else 0) for w in this.words) 
+    blue = blue.sum()
     black = ((if w.kind == WORD_BLACK and w.guessed then 1 else 0) for w in this.words)
-    red == 9 || blue == 8 || black == 1
+    black = black.sum()
 
-gameSchema.methods.start_game = (order, red_id, blue_id) ->
+    if red == 9
+        this.winningTeam = TEAM_RED
+    else if blue == 8
+        this.winningTeam = TEAM_BLUE
+    else if black == 1
+        if this.currentTeam == TEAM_RED
+            this.winningTeam = TEAM_BLUE
+        else if this.currentTeam == TEAM_BLUE
+            this.winningTeam = TEAM_RED
+    console.log('red',red)
+    console.log('blue',blue)
+
+    if not (this.winningTeam == 0)
+        this.state = GAME_FINISHED
+
+    return
+
+gameSchema.methods.start_game = (order, teams) ->
     this.state = GAME_VOTE
     this.currentTeam = TEAM_RED
+    this.winningTeam = 0
     for p in this.players
-        if p.id.equals(blue_id)
-            p.spy = true
-            p.team = TEAM_BLUE
-        else if p.id.equals(red_id)
-            p.spy = true
-            p.team = TEAM_RED
-
+        p.spy = teams[p.id].spy
+        p.team = teams[p.id].team
+    
     #Sort by order
     this.players.sort((a, b) -> a.order - b.order)
     this.setup_words()

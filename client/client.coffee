@@ -32,13 +32,13 @@ jQuery ->
     GAME_VOTE          = 3
     GAME_FINISHED      = 9
     
-    TEAM_RED           = 0
-    TEAM_BLUE          = 1
+    TEAM_RED           = 1
+    TEAM_BLUE          = 2
     
-    WORD_RED           = 0
-    WORD_BLUE          = 1
-    WORD_GREY          = 2
-    WORD_BLACK         = 3
+    WORD_RED           = 1
+    WORD_BLUE          = 2
+    WORD_GREY          = 3
+    WORD_BLACK         = 4
 
     socket.on 'player_id', (player_id) ->
         $.cookie('player_id', player_id, {expires: 365})
@@ -163,7 +163,6 @@ jQuery ->
         else if game.state == GAME_PREGAME
             $("#pregame").show()
             $("#btn_ready").hide()
-            $("#btn_leavelobby").hide()
             $("#btn_start_game").hide()
             $("#gameoptions").hide()
 
@@ -173,19 +172,11 @@ jQuery ->
             $("#gameinfo").empty()
 
             ishost = false
-            red_spy = undefined
-            blue_spy = undefined
             update = ->
                 $("#gameinfo li").each () ->
                     $(this).removeClass("redteam")
                         .removeClass("blueteam")
                         .find("input").attr("spy", "")
-                $("#player" + red_spy)
-                    .addClass("redteam")
-                    .find("input").attr("spy", "red")
-                $("#player" + blue_spy)
-                    .addClass("blueteam")
-                    .find("input").attr("spy", "blue")
 
             for p, i in game.players
                 if game.me.id == p.id && i == 0
@@ -202,7 +193,23 @@ jQuery ->
                     .append(player_id)
 
 
-                if ishost then do (i) ->
+                if ishost then do (li, player_id) ->
+                    li.on 'click', (e) ->
+                         if not (li.is(e.target))
+                             return
+                         if player_id.attr("spy") == "true"
+                             li.removeClass("spy")
+                             player_id.attr("spy", "false")
+                         else
+                             spies = 0
+                             $("#gameinfo li").each () ->
+                                 if $(this).find("input").attr("spy") == "true"
+                                     spies += 1
+                             if spies < 2
+                                 li.addClass("spy")
+                                 player_id.attr("spy", "true")
+
+
                     red_btn = $("<button>")
                         .addClass("pull-right")
                         .addClass("btn")
@@ -210,10 +217,8 @@ jQuery ->
                         .addClass("btn-xs")
                         .text("Red")
                         .on 'click', (e) ->
-                            if i == blue_spy
-                                blue_spy = undefined
-                            red_spy = i
-                            update()
+                            player_id.attr("team", TEAM_RED)
+                            li.removeClass("blueteam").addClass("redteam")
 
                     blue_btn = $("<button>")
                         .addClass("pull-right")
@@ -222,10 +227,8 @@ jQuery ->
                         .addClass("btn-xs")
                         .text("Blue")
                         .on 'click', (e) ->
-                            if i == red_spy
-                                red_spy = undefined
-                            blue_spy = i
-                            update()
+                            player_id.attr("team", TEAM_BLUE)
+                            li.removeClass("redteam").addClass("blueteam")
 
                     li.append(red_btn)
                     li.append(blue_btn)
@@ -273,7 +276,7 @@ jQuery ->
                         li.addClass("blackteam")
 
                 #Make players selectable for the leader (to propose quest)
-                if game.currentTeam == me.team && me.spy
+                if game.currentTeam == me.team && not (me.spy) && not (w.guessed)
 
                     li.on 'click', (e) ->
                         select_for_guess($(e.target))
@@ -286,18 +289,28 @@ jQuery ->
                 $("#players").append(li)
 
             #Make quest proposal button visible to leader
-            if (game.state == GAME_VOTE || game.state == GAME_CLUE) &&
-               game.currentTeam == me.team && me.spy
-                $("#btn_select_guess").show()
-                $("#leaderinfo").show()
-                if me.team == TEAM_RED
-                    teamstr = "Red"
-                else if me.team == TEAM_BLUE
-                    teamstr = "Blue"
-                $("#leaderinfo").html("You are the " + teamstr + " leader, select a word from the list then press this button.")
-            else
-                $("#btn_select_guess").hide()
-                $("#leaderinfo").hide()
+            $("#leaderinfo").show()
+
+            if me.team == TEAM_RED
+                   teamstr = "Red"
+            else if me.team == TEAM_BLUE
+                   teamstr = "Blue"
+            
+            if (game.state == GAME_VOTE || game.state == GAME_CLUE) 
+                if (game.currentTeam == me.team && not (me.spy))
+                    $("#btn_select_guess").show()
+                    $("#btn_pass_turn").show()
+                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button.")
+                else
+                    $("#btn_select_guess").hide()
+                    $("#btn_pass_turn").hide()
+                    if me.spy
+                        if game.currentTeam == me.team
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!")
+                        else
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn.")
+                    else
+                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -317,6 +330,9 @@ jQuery ->
             $("#signin").hide()
         e.preventDefault()
 
+    $("#btn_pass_turn").on 'click', () ->
+        socket.emit 'pass_turn'
+    
     $("#btn_newgame").on 'click', () ->
         socket.emit 'newgame'
 
@@ -333,20 +349,31 @@ jQuery ->
         players = $("#gameinfo").sortable("toArray")
         players.unshift($("#gameinfo li").attr("id"))
         sorted = {}
-
+        teams = {}
+        blue_team = 0
+        red_team = 0
         for p, i in players
             input = $("#" + p + " input")[0]
             player_id = $(input).attr("value")
-            spy = $(input).attr("spy")
-            if spy == "red"
-                red_id = player_id
-            else if spy == "blue"
-                blue_id = player_id
+            spy = $(input).attr("spy") == "true"
+            team = parseInt($(input).attr("team"),10)
+            entry =
+                spy : spy
+                team : team
+            if team == TEAM_RED
+                red_team += 1
+                if spy
+                    red_spy = true
+            else if team == TEAM_BLUE
+                blue_team +=1
+                if spy
+                    blue_spy = true
+            teams[player_id] = entry
             sorted[player_id] = i + 1
 
         options = {}
-        if red_id && blue_id 
-            socket.emit('startgame', {order: sorted, options: options, red_id: red_id, blue_id: blue_id})
+        if red_spy && blue_spy && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)
+            socket.emit('startgame', {order: sorted, options: options, teams : teams})
         else
             return
 
@@ -362,7 +389,6 @@ jQuery ->
                 sel = $(this)
 
         if guess
-            $("#btn_select_guess").hide()
             sel.removeClass('active')
             socket.emit('make_guess', guess)
         else
