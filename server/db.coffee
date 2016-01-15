@@ -253,6 +253,7 @@ gameSchema.methods.start_game = (order, teams, is_coop) ->
     for p in this.players
         p.spy = teams[p.id].spy
         p.team = teams[p.id].team
+        p.order = order[p.id]
     
     #Sort by order
     this.players.sort((a, b) -> a.order - b.order)

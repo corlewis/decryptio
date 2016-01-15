@@ -122,7 +122,6 @@ io.on 'connection', (socket) ->
                     socket.join('lobby')
                     send_game_list()
                     return
-
                 for p in game.players
                     if p.id.equals(player_id)
                         if p.left || game.state == GAME_FINISHED
@@ -218,41 +217,39 @@ io.on 'connection', (socket) ->
 
     socket.on 'reconnect_vote', (rvote) ->
         player = socket.player
-        return not player
+        return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
-
             order = -1
             for p in game.players
                 if p.id.equals(player._id)
                     order = p.order
             return if order == -1
-
+        
             if rvote
                 game.reconnect_vote.set(order, 1)
                 vs = (v for v in game.reconnect_vote)
                 vs = vs.sum()
-
-                if vs > (game.players.length / 2)
+                if vs > ((game.players.length - 1) / 2)
                     sock = io.sockets.sockets[game.reconnect_sock]
                     #Save player's socket data
-                    sock.get 'player', (err, player) ->
-                        if player && not err
-                            player.socket = sock.id
-                            player.save()
-                            sock.emit('player_id', player._id)
+                    player = sock.player
+                    if player
+                        player.socket = sock.id
+                        player.save()
+                        sock.emit('player_id', player._id)
 
-                            for p in game.players
-                                if p.id.equals(player._id)
-                                    p.socket = sock.id
-                                    break
+                        for p in game.players
+                            if p.id.equals(player._id)
+                                p.socket = sock.id
+                                break
 
-                        game.reconnect_user = undefined
-                        game.reconnect_sock = undefined
-                        game.reconnect_vote = (0 for p in game.players)
+                    game.reconnect_user = undefined
+                    game.reconnect_sock = undefined
+                    game.reconnect_vote = (0 for p in game.players)
 
-                        game.save()
-                        send_game_info(game)
+                    game.save()
+                    send_game_info(game)
                 else
                     game.save()
                     send_game_info(game)
@@ -285,23 +282,28 @@ io.on 'connection', (socket) ->
         game_id = data.game_id
         player = socket.player
         return if not player
+
         if player.currentGame
             player.leave_game (err, game) ->
                 if game then send_game_info(game)
                 send_game_list()
-
         Game.findById game_id, (err, game) ->
+
             return if not game
+
+
             if game.state == GAME_PREGAME || game.state == GAME_FINISHED
                 send_game_list()
                 return
-            rejoined = false
-            for p in game.players
-                if p.id.equals(player_id)
-                    p.socket = socket.id
-                    p.left = false
-                    rejoined = true
-            if not rejoined
+            new_player = true
+            for gp in game.players
+                if gp.id.equals(player_id)                    
+                    gp.id = player_id
+                    gp.socket = socket.id
+                    gp.left = false
+                    new_player = false
+
+            if new_player
                 game.add_player player
             #TODO check if player was actually added
             game.save (err, game) ->
@@ -347,8 +349,9 @@ io.on 'connection', (socket) ->
                     target.leave_game (err, game) ->
                         if game then send_game_info(game)
                         s = io.sockets.sockets[target.socket]
-                        s.emit('kicked')
-                        s.join('lobby')
+                        if s
+                            s.emit('kicked')
+                            s.join('lobby')
                         send_game_list()
 
     socket.on 'startgame', (data) ->
@@ -361,7 +364,6 @@ io.on 'connection', (socket) ->
             is_coop = data.is_coop 
             #Sanity check
             return if Object.keys(order).length != game.players.length
-
             game.start_game(order, teams, is_coop)
             game.save()
             send_game_info(game)
@@ -382,10 +384,6 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
-            for p in game.players
-                if p.id.equals(player_id)
-                    gp = p
-            
             if game.state == GAME_VOTE || game.state == GAME_CLUE
                 for w in game.words
                     if w.word == data
@@ -397,7 +395,7 @@ io.on 'connection', (socket) ->
             if kind == WORD_RED
                 game.currentTeam = TEAM_RED
             else if kind == WORD_BLUE
-                if gp.spy && game.isCoop
+                if game.currentTeam == TEAM_BLUE && game.isCoop
                     game.currentTeam = TEAM_RED
                 else
                     game.currentTeam = TEAM_BLUE
@@ -405,91 +403,6 @@ io.on 'connection', (socket) ->
                 game.currentTeam = other_team(game.currentTeam)
 
             game.check_for_game_end()
-            game.save()
-            send_game_info(game)
-
-    socket.on 'vote', (data) ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-            currVote = game.votes[game.votes.length - 1]
-
-            #Check to prevent double voting
-            for p in currVote.votes
-                voted = true if player._id.equals(p.id)
-            return if voted
-
-            currVote.votes.push
-                id      : player._id
-                vote    : data
-
-            #Check for vote end
-            if currVote.votes.length == game.players.length
-                vs = ((if v.vote then 1 else 0) for v in currVote.votes)
-                vs = vs.sum()
-                vote_passed = vs > (game.players.length - vs)
-                vote_count = 0
-
-                if game.state == GAME_VOTE
-                    new_mission = false
-                    if vote_passed
-                        game.state = GAME_QUEST
-                    else
-                        game.state = GAME_PROPOSE
-
-                        #Check for too many failed votes
-                        for v in game.votes
-                            if v.mission == game.currentMission
-                                vote_count += 1
-
-                        if vote_count == 5
-                            if game.gameOptions.ptrc
-                                game.state = GAME_PTRC_PROPOSE
-                            else
-                                new_mission = true
-                                currMission = game.missions[game.currentMission]
-                                currMission.status = 1
-                                game.check_for_game_end()
-
-                    game.set_next_leader(vote_passed || new_mission)
-                else
-                    #In state GAME_PTRC_VOTE
-                    if vote_passed
-                        currVote.accepted = currVote.accepted.concat(currVote.team)
-                    else
-                        currVote.rejected = currVote.rejected.concat(currVote.team)
-
-                    #Check for full team
-                    currMission = game.missions[game.currentMission]
-                    votedOn = currVote.accepted.concat(currVote.rejected)
-                    numNotVotedOn = game.players.length - votedOn.length
-                    if currVote.accepted.length == currMission.numReq ||
-                       currVote.accepted.length + numNotVotedOn == currMission.numReq
-                        notVotedOn = []
-                        if currVote.accepted.length != currMission.numReq
-                            for p in game.players
-                                hasBeenVotedOn = false
-                                for vo in votedOn
-                                    if p.id.equals(vo)
-                                        hasBeenVotedOn = true
-
-                                if not hasBeenVotedOn
-                                    notVotedOn.push p.id
-
-                        game.votes.push
-                            mission  : currVote.mission
-                            team     : currVote.accepted.concat(notVotedOn)
-                            accepted : currVote.accepted
-                            rejected : currVote.rejected
-                            votes    : currVote.votes
-                        game.state = GAME_QUEST
-                        game.currentLeader = game.finalLeader
-                        game.set_next_leader(true)
-                    else
-                        game.state = GAME_PTRC_PROPOSE
-                        game.set_next_leader(false)
-
             game.save()
             send_game_info(game)
 

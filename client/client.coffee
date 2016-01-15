@@ -322,7 +322,7 @@ jQuery ->
                     else
                          $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
                     if me.team == TEAM_NONE
-                            $("#leaderinfo").html("You are spectating." + scorestr)
+                            $("#leaderinfo").html("You are spectating.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -382,9 +382,8 @@ jQuery ->
                 if spy
                     blue_spies += 1
             teams[player_id] = entry
-            sorted[player_id] = i + 1
+            sorted[player_id] = i
         is_coop = (red_spies == 1) && red_team == players.length
-
         options = {}
         if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
             socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
