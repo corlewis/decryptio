@@ -33,7 +33,7 @@ send_game_list = () ->
             for p in g.players
                 if io.sockets.sockets[p.socket]
                     has_active = true
-            if (g.state == GAME_LOBBY || (g.state != GAME_FINISHED && g.state != GAME_PREGAME && has_active))
+            if has_active && (g.state == GAME_LOBBY || (g.state != GAME_FINISHED && g.state != GAME_PREGAME))
                 gamelist.push game
         data.gamelist = gamelist
         
