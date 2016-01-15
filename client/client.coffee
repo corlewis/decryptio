@@ -4,6 +4,13 @@ Array::sum = () ->
 VERSION = 1
 
 jQuery ->
+    
+    shuffle = (a) ->
+        for i in [a.length-1..1]
+            j = Math.floor Math.random() * (i + 1)
+            [a[i], a[j]] = [a[j], a[i]]
+        return a
+
     #Socket.io stuff
     query = ""
     if $.cookie('player_id')
@@ -123,7 +130,7 @@ jQuery ->
             $("#stale_version").show()
             return
         $("#stale_version").hide()
-
+        $("#btn_randomize").hide()
         $("#lobby").hide()
 
         if game.state == GAME_LOBBY
@@ -171,6 +178,7 @@ jQuery ->
         else if game.state == GAME_PREGAME
             $("#pregame").show()
             $("#btn_ready").hide()
+            $("#btn_leavelobby").hide()
             $("#btn_start_game").hide()
             $("#gameoptions").hide()
 
@@ -185,6 +193,21 @@ jQuery ->
                     $(this).removeClass("redteam")
                         .removeClass("blueteam")
                         .find("input").attr("spy", "")
+
+            set_team = (li,team) ->
+                if team == TEAM_RED
+                    li.removeClass("blueteam").addClass("redteam")
+                else if team == TEAM_BLUE
+                    li.removeClass("redteam").addClass("blueteam")
+                li.find("input").attr("team",team)
+
+            set_spy = (li,is_spy) ->
+               if is_spy
+                   li.addClass("spy")
+                   li.find("input").attr("spy","true")
+               else
+                   li.removeClass("spy")
+                   li.find("input").attr("spy","false")
 
             for p, i in game.players
                 if game.me.id == p.id && i == 0
@@ -206,16 +229,14 @@ jQuery ->
                          if not (li.is(e.target))
                              return
                          if player_id.attr("spy") == "true"
-                             li.removeClass("spy")
-                             player_id.attr("spy", "false")
+                             set_spy(li, false)
                          else
                              spies = 0
                              $("#gameinfo li").each () ->
                                  if $(this).find("input").attr("spy") == "true"
                                      spies += 1
                              if spies < 2
-                                 li.addClass("spy")
-                                 player_id.attr("spy", "true")
+                                 set_spy(li, true)
 
 
                     red_btn = $("<button>")
@@ -225,8 +246,7 @@ jQuery ->
                         .addClass("btn-xs")
                         .text("Red")
                         .on 'click', (e) ->
-                            player_id.attr("team", TEAM_RED)
-                            li.removeClass("blueteam").addClass("redteam")
+                            set_team(li, TEAM_RED)
 
                     blue_btn = $("<button>")
                         .addClass("pull-right")
@@ -235,18 +255,33 @@ jQuery ->
                         .addClass("btn-xs")
                         .text("Blue")
                         .on 'click', (e) ->
-                            player_id.attr("team", TEAM_BLUE)
-                            li.removeClass("redteam").addClass("blueteam")
+                            set_team(li, TEAM_BLUE)
 
                     li.append(red_btn)
                     li.append(blue_btn)
                 
                 $("#gameinfo").append li
-                if ishost
-                    $("#btn_start_game").show()
-                    $("#gameoptions").show()
+            if ishost
+                $("#btn_randomize").show()
+                    .on 'click', (e) ->
+                        lis = $("#gameinfo li")
+                        middle = (lis.length - 1) / 2
+                        shuffle(lis).each (i, v) ->
+                            set_spy($(this),false)
+                            if i == 0
+                                set_spy($(this), true)
+                            else if i == (lis.length - 1)
+                                set_spy($(this), true)
 
-            if not ishost
+                            if i < middle
+                                set_team($(this), TEAM_RED)
+                            else if i >= middle
+                                set_team($(this), TEAM_BLUE)
+     
+                $("#btn_start_game").show()
+                $("#gameoptions").show()
+
+            else
                 $("#waitforhost").show()
 
             window.have_game_info = true
