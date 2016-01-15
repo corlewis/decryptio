@@ -109,6 +109,8 @@ gameSchema = new mongoose.Schema
     ]
     currentTeam     : Number
     winningTeam     : Number
+    isCoop          : Boolean
+    coopScore       : Number
     reconnect_vote  : [Number]
     reconnect_user  : String
     reconnect_sock  : String
@@ -245,7 +247,7 @@ gameSchema.methods.check_for_game_end = () ->
 
     return
 
-gameSchema.methods.start_game = (order, teams) ->
+gameSchema.methods.start_game = (order, teams, is_coop) ->
     this.state = GAME_VOTE
     this.currentTeam = TEAM_RED
     this.winningTeam = 0
@@ -255,6 +257,8 @@ gameSchema.methods.start_game = (order, teams) ->
     
     #Sort by order
     this.players.sort((a, b) -> a.order - b.order)
+    this.isCoop = is_coop
+    this.coopScore = 0
     this.setup_words()
 
 Game = mongoose.model('Game', gameSchema)

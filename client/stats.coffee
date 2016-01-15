@@ -49,14 +49,20 @@ displayGame = (game) ->
     for p in game.players
         players[p.id] = p
 
+    scorestr = ""
+    bluestr = "Game Over. Blue team wins!"
+    if game.isCoop
+        scorestr = " Co-op score: " + game.coopScore.toString() + " points."
+        bluestr = "Game Over. Co-op game lost!"
+
     if game.winningTeam == TEAM_RED
         $("#gameover")
             .addClass("redteam")
-            .text("Game Over. Red team wins!")
+            .text("Game Over. Red team wins!" + scorestr)
     else
         $("#gameover")
             .addClass("blueteam")
-            .text("Game Over. Blue team wins!")
+            .text(bluestr)
 
 
     $("#players").empty().addClass("wordlist")

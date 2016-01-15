@@ -301,24 +301,28 @@ jQuery ->
                    teamstr = "Red"
             else if me.team == TEAM_BLUE
                    teamstr = "Blue"
+
+            scorestr = ""
+            if game.isCoop
+                scorestr = " Co-op score: " + game.coopScore.toString() + "."
             
             if (game.state == GAME_VOTE || game.state == GAME_CLUE) 
                 if (game.currentTeam == me.team && not (me.spy))
                     $("#btn_select_guess").show()
                     $("#btn_pass_turn").show()
-                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button.")
+                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button." + scorestr)
                 else
                     $("#btn_select_guess").hide()
                     $("#btn_pass_turn").hide()
                     if me.spy
                         if game.currentTeam == me.team
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!")
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!" + scorestr)
                         else
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn.")
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn." + scorestr)
                     else
-                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
+                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn." + scorestr)
                     if me.team == TEAM_NONE
-                            $("#leaderinfo").html("You are spectating.")
+                            $("#leaderinfo").html("You are spectating." + scorestr)
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -359,6 +363,8 @@ jQuery ->
         teams = {}
         blue_team = 0
         red_team = 0
+        blue_spies = 0
+        red_spies = 0
         for p, i in players
             input = $("#" + p.id + " input")[0]
             player_id = $(input).attr("value")
@@ -370,17 +376,18 @@ jQuery ->
             if team == TEAM_RED
                 red_team += 1
                 if spy
-                    red_spy = true
+                    red_spies += 1
             else if team == TEAM_BLUE
                 blue_team +=1
                 if spy
-                    blue_spy = true
+                    blue_spies += 1
             teams[player_id] = entry
             sorted[player_id] = i + 1
+        is_coop = (red_spies == 1) && red_team == players.length
 
         options = {}
-        if red_spy && blue_spy && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)
-            socket.emit('startgame', {order: sorted, options: options, teams : teams})
+        if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
+            socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
         else
             return
 
