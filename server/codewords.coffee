@@ -18,6 +18,19 @@ other_team = (team) ->
         console.log('No other team:', team)
         return TEAM_NONE
 
+
+finish_stale_games = () ->
+    Game.find {}, (err, games) ->
+        for g in games
+            has_active = false
+            for p in g.players
+                if io.sockets.sockets[p.socket]
+                    has_active = true
+            if not (has_active) && g.state != GAME_FINISHED
+                g.state = GAME_FINISHED
+                g.save()
+            
+
 send_game_list = () ->
     Game.find {}, (err, games) ->
         data =
@@ -29,11 +42,7 @@ send_game_list = () ->
                 name : g.name()
                 num_players : g.players.length
                 state : g.state
-            has_active = false
-            for p in g.players
-                if io.sockets.sockets[p.socket]
-                    has_active = true
-            if has_active && (g.state == GAME_LOBBY || (g.state != GAME_FINISHED && g.state != GAME_PREGAME))
+            if game.state != GAME_PREGAME && game.state != GAME_FINISHED
                 gamelist.push game
         data.gamelist = gamelist
         
@@ -267,6 +276,7 @@ io.on 'connection', (socket) ->
                 sock.emit('reconnectdenied')
 
     socket.on 'newgame', (game) ->
+        finish_stale_games() 
         player = socket.player
         return if not player
         game = new Game()
