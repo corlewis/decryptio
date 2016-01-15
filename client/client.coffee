@@ -282,7 +282,7 @@ jQuery ->
                         li.addClass("blackteam")
 
                 #Make players selectable for the leader (to propose quest)
-                if game.currentTeam == me.team && not (me.spy) && not (w.guessed)
+                if (game.currentTeam == me.team && not (me.spy) && not (w.guessed)) || (game.isCoop && game.currentTeam == TEAM_BLUE && me.spy && w.kind == WORD_BLUE && not(w.guessed))
 
                     li.on 'click', (e) ->
                         select_for_guess($(e.target))
@@ -302,25 +302,25 @@ jQuery ->
             else if me.team == TEAM_BLUE
                    teamstr = "Blue"
 
-            scorestr = ""
-            if game.isCoop
-                scorestr = " Co-op score: " + game.coopScore.toString() + "."
-            
             if (game.state == GAME_VOTE || game.state == GAME_CLUE) 
                 if (game.currentTeam == me.team && not (me.spy))
                     $("#btn_select_guess").show()
                     $("#btn_pass_turn").show()
-                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button." + scorestr)
+                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button.")
+                else if (game.currentTeam == TEAM_BLUE && game.isCoop && me.spy)
+                    $("#btn_select_guess").show()
+                    $("#btn_pass_turn").hide()
+                    $("#leaderinfo").html("Your team guessed incorrectly. Pick a blue card to hide.")
                 else
                     $("#btn_select_guess").hide()
                     $("#btn_pass_turn").hide()
                     if me.spy
                         if game.currentTeam == me.team
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!" + scorestr)
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!")
                         else
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn." + scorestr)
+                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn.")
                     else
-                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn." + scorestr)
+                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
                     if me.team == TEAM_NONE
                             $("#leaderinfo").html("You are spectating." + scorestr)
 

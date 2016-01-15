@@ -11,9 +11,9 @@ VERSION = 1
 
 other_team = (team) ->
     if team == TEAM_RED
-        return TEAM_BLUE
+        TEAM_BLUE
     else if team == TEAM_BLUE
-        return TEAM_RED
+        TEAM_RED
     else
         console.log('No other team:', team)
         return TEAM_NONE
@@ -46,7 +46,6 @@ send_game_info = (game, to = undefined) ->
         id              : game.id
         currentTeam     : game.currentTeam
         isCoop          : game.isCoop
-        coopScore       : game.coopScore
         reconnect_user  : game.reconnect_user
         reconnect_vote  : game.reconnect_vote
         version         : VERSION
@@ -372,10 +371,7 @@ io.on 'connection', (socket) ->
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
-            if game.isCoop
-                game.coopScore += 3
-            else
-                game.currentTeam = other_team(game.currentTeam)
+            game.currentTeam = other_team(game.currentTeam)
 
             game.save()
             send_game_info(game)
@@ -386,6 +382,10 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
+            for p in game.players
+                if p.id.equals(player_id)
+                    gp = p
+            
             if game.state == GAME_VOTE || game.state == GAME_CLUE
                 for w in game.words
                     if w.word == data
@@ -397,16 +397,12 @@ io.on 'connection', (socket) ->
             if kind == WORD_RED
                 game.currentTeam = TEAM_RED
             else if kind == WORD_BLUE
-                if game.isCoop
-                    game.coopScore += 5
+                if gp.spy && game.isCoop
+                    game.currentTeam = TEAM_RED
                 else
                     game.currentTeam = TEAM_BLUE
-            else if kind == WORD_GREY && game.isCoop
-                game.coopScore += 3
-            else if kind == WORD_GREY && game.currentTeam == TEAM_RED
-                game.currentTeam = TEAM_BLUE
-            else if kind == WORD_GREY && game.currentTeam == TEAM_BLUE
-                game.currentTeam = TEAM_RED
+            else if kind == WORD_GREY
+                game.currentTeam = other_team(game.currentTeam)
 
             game.check_for_game_end()
             game.save()

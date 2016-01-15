@@ -52,13 +52,12 @@ displayGame = (game) ->
     scorestr = ""
     bluestr = "Game Over. Blue team wins!"
     if game.isCoop
-        scorestr = " Co-op score: " + game.coopScore.toString() + " points."
         bluestr = "Game Over. Co-op game lost!"
 
     if game.winningTeam == TEAM_RED
         $("#gameover")
             .addClass("redteam")
-            .text("Game Over. Red team wins!" + scorestr)
+            .text("Game Over. Red team wins!")
     else
         $("#gameover")
             .addClass("blueteam")
