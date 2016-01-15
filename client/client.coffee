@@ -245,8 +245,6 @@ jQuery ->
                 if ishost
                     $("#btn_start_game").show()
                     $("#gameoptions").show()
-                    $("#gameinfo").sortable
-                        items : "li:not(:first)"
 
             if not ishost
                 $("#waitforhost").show()
@@ -356,14 +354,13 @@ jQuery ->
         socket.emit('ready')
 
     $("#btn_start_game").on 'click', () ->
-        players = $("#gameinfo").sortable("toArray")
-        players.unshift($("#gameinfo li").attr("id"))
+        players = $("#gameinfo li")
         sorted = {}
         teams = {}
         blue_team = 0
         red_team = 0
         for p, i in players
-            input = $("#" + p + " input")[0]
+            input = $("#" + p.id + " input")[0]
             player_id = $(input).attr("value")
             spy = $(input).attr("spy") == "true"
             team = parseInt($(input).attr("team"),10)
