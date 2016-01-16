@@ -19,18 +19,6 @@ other_team = (team) ->
         return TEAM_NONE
 
 
-finish_stale_games = () ->
-    Game.find {}, (err, games) ->
-        for g in games
-            has_active = false
-            for p in g.players
-                if io.sockets.sockets[p.socket]
-                    has_active = true
-            if not (has_active) && g.state != GAME_FINISHED
-                g.state = GAME_FINISHED
-                g.save()
-            
-
 send_game_list = () ->
     Game.find {}, (err, games) ->
         data =
@@ -158,6 +146,23 @@ io.on 'connection', (socket) ->
         socket.join('lobby')
         send_game_list()
 
+
+    socket.on 'finishstale', (data) ->
+        Game.find {}, (err, games) ->
+            for g in games
+                has_active = false
+                promises = []
+    
+                for p in g.players
+                    if io.sockets.sockets[p.socket]
+                        has_active
+    
+                if not (has_active) && g.state != GAME_FINISHED
+                    g.state = GAME_FINISHED
+                    g.save()
+            
+
+
     socket.on 'login', (data) ->
         player = socket.player
         if player
@@ -275,7 +280,6 @@ io.on 'connection', (socket) ->
                 sock.emit('reconnectdenied')
 
     socket.on 'newgame', (game) ->
-        finish_stale_games() 
         player = socket.player
         return if not player
         game = new Game()
