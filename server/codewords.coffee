@@ -36,7 +36,8 @@ send_game_list = () ->
         
         io.sockets.in('lobby').emit('gamelist', data)
 
-send_game_info = (game, to = undefined) ->
+
+send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
     data =
         state           : game.state
         options         : game.gameOptions
@@ -85,7 +86,7 @@ send_game_info = (game, to = undefined) ->
         else
             data.words = words
         if s.socket
-            s.socket.emit('gameinfo', data)
+            s.socket.emit(tagged, data)
         data.words = []
         data.players[i].info = []
 
@@ -366,6 +367,20 @@ io.on 'connection', (socket) ->
                             s.emit('kicked')
                             s.join('lobby')
                         send_game_list()
+   
+    socket.on 'teaminfo', (data) ->
+        player = socket.player
+        return if not player
+
+        Game.findById player.currentGame, (err, game) ->
+            
+            for p in game.players
+                p.team = data[p.id].team
+                p.spy = data[p.id].spy
+
+            game.save()
+            send_game_info(game, undefined, 'teaminfo')
+
 
     socket.on 'startgame', (data) ->
         player = socket.player

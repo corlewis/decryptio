@@ -120,6 +120,28 @@ jQuery ->
         $("#pregame").hide()
         $("#game").hide()
 
+    socket.on 'teaminfo', (game) ->
+       if game.state != GAME_PREGAME
+           return
+   
+       players = $("#gameinfo li")
+       
+       for p, i in game.players
+            if game.me.id == p.id && i == 0
+                return
+            
+            $(players[i]).removeClass("blueteam").removeClass("redteam")
+            if p.team == TEAM_RED
+                $(players[i]).addClass("redteam")
+            else if p.team == TEAM_BLUE
+                $(players[i]).addClass("blueteam")
+
+            $(players[i]).removeClass("spy")
+            if p.spy
+                $(players[i]).addClass("spy")
+
+       
+
     socket.on 'gameinfo', (game) ->
         if game.version != VERSION
             $("#signin").hide()
@@ -210,6 +232,21 @@ jQuery ->
                    li.removeClass("spy")
                    li.find("input").attr("spy","false")
 
+            emit_teams = () ->
+                teams = {}
+                players = $("#gameinfo li").each () ->
+                    input = $(this).find("input")
+                    player_id = input.attr("value")
+                    team = parseInt(input.attr("team"),10)
+                    spy = input.attr("spy") == "true"
+
+                    teams[player_id] = 
+                        team : team
+                        spy : spy
+
+                socket.emit('teaminfo', teams)
+                        
+
             for p, i in game.players
                 if game.me.id == p.id && i == 0
                     ishost = true
@@ -238,6 +275,7 @@ jQuery ->
                                      spies += 1
                              if spies < 2
                                  set_spy(li, true)
+                         emit_teams()
 
 
                     red_btn = $("<button>")
@@ -248,6 +286,7 @@ jQuery ->
                         .text("Red")
                         .on 'click', (e) ->
                             set_team(li, TEAM_RED)
+                            emit_teams()
 
                     blue_btn = $("<button>")
                         .addClass("pull-right")
@@ -257,6 +296,7 @@ jQuery ->
                         .text("Blue")
                         .on 'click', (e) ->
                             set_team(li, TEAM_BLUE)
+                            emit_teams()
 
                     li.append(red_btn)
                     li.append(blue_btn)
@@ -289,6 +329,7 @@ jQuery ->
                                 set_team($(this), TEAM_RED)
                             else if i >= middle
                                 set_team($(this), TEAM_BLUE)
+                        emit_teams()
 
                 $("#btn_randomize_spies").show()
                     .on 'click', (e) ->
@@ -317,7 +358,7 @@ jQuery ->
                         if not (blue_spy)
                             set_spy($(neither[0]), true)
 
-                        
+                        emit_teams()
     
                 $("#btn_start_game").show()
                 $("#gameoptions").show()
