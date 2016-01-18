@@ -130,7 +130,8 @@ jQuery ->
             $("#stale_version").show()
             return
         $("#stale_version").hide()
-        $("#btn_randomize").hide()
+        $("#btn_randomize_spies").hide()
+        $("#btn_randomize_teams").hide()
         $("#lobby").hide()
 
         if game.state == GAME_LOBBY
@@ -262,22 +263,62 @@ jQuery ->
                 
                 $("#gameinfo").append li
             if ishost
-                $("#btn_randomize").show()
+                players = $("#gameinfo li")
+                
+                $("#btn_randomize_teams").show()
                     .on 'click', (e) ->
-                        lis = $("#gameinfo li")
-                        middle = (lis.length - 1) / 2
-                        shuffle(lis).each (i, v) ->
-                            set_spy($(this),false)
-                            if i == 0
-                                set_spy($(this), true)
-                            else if i == (lis.length - 1)
-                                set_spy($(this), true)
-
+                        spies = []
+                        nonspies = []
+                        players.each (i, p) ->
+                            if $(this).find("input").attr("spy") == "true"
+                                spies.push(p)
+                            else
+                                nonspies.push(p)
+                    
+                        if spies.length < 2
+                            nonspies = $.merge(spies, nonspies)
+                        else
+                            sspies = shuffle(spies)
+                            set_team($(sspies[0]), TEAM_RED)
+                            set_team($(sspies[1]), TEAM_BLUE)
+                                  
+                        $.each shuffle(nonspies), (i, p) ->
+                            jitter = Math.floor(Math.random() * 2)
+                            middle = (nonspies.length - jitter) / 2
                             if i < middle
                                 set_team($(this), TEAM_RED)
                             else if i >= middle
                                 set_team($(this), TEAM_BLUE)
+
+                $("#btn_randomize_spies").show()
+                    .on 'click', (e) ->
+                        red_spy = false
+                        blue_spy = false
+                        neither = []
+
+                        players.each (i, p) ->
+                            set_spy($(this), false)
      
+                        shuffle(players).each (i, p) ->
+                            team = parseInt($(this).find("input").attr("team"),10)
+                            if team == TEAM_RED && not (red_spy)
+                                set_spy($(this), true)
+                                red_spy = true
+                            else if team == TEAM_BLUE && not (blue_spy)
+                                set_spy($(this), true)
+                                blue_spy = true
+                            else
+                                neither.push(p)
+
+                        if not (red_spy)
+                            set_spy($(neither[0]), true)
+                            neither.splice(0,1)
+
+                        if not (blue_spy)
+                            set_spy($(neither[0]), true)
+
+                        
+    
                 $("#btn_start_game").show()
                 $("#gameoptions").show()
 
