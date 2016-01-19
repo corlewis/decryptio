@@ -2,7 +2,7 @@
   "name": "socket-avalon",
   "version": "1.0.0",
   "description": "Websocket implementation of Couchalon",
-  "main": "avalon.js",
+  "main": "codewords.js",
   "dependencies": {
     "bcrypt": "^0.8.5",
     "express": "^4.13.3",
@@ -16,16 +16,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alexlegg/socket-avalon.git"
+    "url": "git+https://github.com/danmatichuk/codewords.git"
   },
   "keywords": [
     "couchalon",
     "avalon"
   ],
-  "author": "Alex Legg",
+  "author": "Daniel Matichuk",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/alexlegg/socket-avalon/issues"
+    "url": "https://github.com/danmatichuk/codewords/issues"
   },
-  "homepage": "https://github.com/alexlegg/socket-avalon#readme"
+  "homepage": "https://github.com/danmatichuk/codewords#readme"
 }

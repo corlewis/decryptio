@@ -303,6 +303,12 @@ jQuery ->
                 
                 $("#gameinfo").append li
             if ishost
+                select = ''
+                for i in [0..8]
+                    select += '<option val=' + i + '>' + i + '</option>'
+                $("#opt_assassins").html(select)
+                $('#opt_assassins option[val="1"]').attr("selected", "selected");
+     
                 players = $("#gameinfo li")
                 
                 $("#btn_randomize_teams").show()
@@ -340,12 +346,6 @@ jQuery ->
                         players.each (i, p) ->
                             set_spy($(this), false)
 
-                select = ''
-                for i in [0..8]
-                    select += '<option val=' + i + '>' + i + '</option>'
-                $("#opt_assassins").html(select)
-                $('#opt_assassins option[val="1"]').attr("selected", "selected");
-     
                         shuffle(players).each (i, p) ->
                             team = parseInt($(this).find("input").attr("team"),10)
                             if team == TEAM_RED && not (red_spy)
