@@ -72,7 +72,7 @@ Player = mongoose.model('Player', playerSchema)
 gameSchema = new mongoose.Schema
     state       : {type: Number, default: GAME_LOBBY}
     gameOptions : {
-        no_option   : Boolean
+        num_assassins  : {type: Number, default: 1}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
@@ -195,6 +195,7 @@ shuffle = (a) ->
 
 gameSchema.methods.setup_words = () ->
     words = shuffle(globalWords)
+    start_assassins = 25 - this.gameOptions.num_assassins
 
     for i in [0..8]
         this.words.push
@@ -206,15 +207,18 @@ gameSchema.methods.setup_words = () ->
             word : words[i]
             kind : WORD_BLUE
             guessed : false
-    for i in [17..23]
-        this.words.push
-            word : words[i]
-            kind : WORD_GREY
-            guessed : false
-    this.words.push
-            word : words[24]
-            kind : WORD_BLACK
-            guessed : false
+    if 17 < start_assassins
+        for i in [17...start_assassins]
+            this.words.push
+                word : words[i]
+                kind : WORD_GREY
+                guessed : false
+    if start_assassins < 25
+        for i in [start_assassins..24]
+            this.words.push
+                word : words[i]
+                kind : WORD_BLACK
+                guessed : false
     dosort = (a,b) ->
         if a.word < b.word
             return -1

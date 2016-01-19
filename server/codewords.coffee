@@ -7,7 +7,7 @@ Q = require('q')
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 1
+VERSION = 2
 
 other_team = (team) ->
     if team == TEAM_RED
@@ -390,6 +390,8 @@ io.on 'connection', (socket) ->
             order = data.order
             teams = data.teams
             is_coop = data.is_coop 
+            game.gameOptions.num_assassins = data.options.num_assassins
+
             #Sanity check
             return if Object.keys(order).length != game.players.length
             game.start_game(order, teams, is_coop)

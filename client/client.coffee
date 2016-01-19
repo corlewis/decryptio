@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 1
+VERSION = 2
 
 jQuery ->
     
@@ -339,6 +339,12 @@ jQuery ->
 
                         players.each (i, p) ->
                             set_spy($(this), false)
+
+                select = ''
+                for i in [0..8]
+                    select += '<option val=' + i + '>' + i + '</option>'
+                $("#opt_assassins").html(select)
+                $('#opt_assassins option[val="1"]').attr("selected", "selected");
      
                         shuffle(players).each (i, p) ->
                             team = parseInt($(this).find("input").attr("team"),10)
@@ -502,6 +508,7 @@ jQuery ->
             sorted[player_id] = i
         is_coop = (red_spies == 1) && red_team == players.length
         options = {}
+        options['num_assassins'] = $("#opt_assassins").val()
         if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
             socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
         else
