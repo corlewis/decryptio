@@ -33,7 +33,13 @@ app.get '/api', (req, res) ->
             Game.find {}, (err, games) ->
                 response = []
                 for g in games
-                    if g.state != req_state
+                    has_active = false
+
+                    for p in g.players
+                        if io.sockets.sockets[p.socket] 
+                            has_active = true
+
+                    if (g.state != req_state && has_active)
                         continue
 
                     response.push
