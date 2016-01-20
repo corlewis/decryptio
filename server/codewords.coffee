@@ -452,19 +452,23 @@ io.on 'connection', (socket) ->
                     kind = w.kind
 
             game.guessesLeft -= 1
+            switch_teams = false
 
             if kind == WORD_RED && game.currentTeam != TEAM_RED
-                game.currentTeam = TEAM_RED
-                game.state = GAME_CLUE
+                switch_teams = true
             else if kind == WORD_BLUE && game.currentTeam != TEAM_BLUE
-                game.currentTeam = TEAM_BLUE
-                game.state = GAME_CLUE
+                switch_teams = true
             else if game.isCoop && kind == WORD_BLUE && game.currentTeam == TEAM_BLUE
-                game.currentTeam = TEAM_RED
-                game.state = GAME_CLUE
+                switch_teams = true
             else if kind == WORD_GREY || game.guessesLeft < 1
+                switch_teams = true
+
+            if switch_teams
                 game.currentTeam = other_team(game.currentTeam)
-                game.state = GAME_CLUE
+                if (not game.isCoop) || game.currentTeam == TEAM_RED
+                    game.state = GAME_CLUE
+                else
+                    game.state = GAME_VOTE
 
             game.check_for_game_end()
             game.save()
