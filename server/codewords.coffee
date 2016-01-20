@@ -427,7 +427,7 @@ io.on 'connection', (socket) ->
             game.guessesLeft = data.numWords
             game.guessesLeft += 1
 
-            if game.guessesLeft == 1
+            if game.guessesLeft == 1 || data.numWords == "Infinite"
                 game.guessesLeft = 100
 
             game.state = GAME_VOTE
