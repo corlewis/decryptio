@@ -38,8 +38,16 @@ app.get '/api', (req, res) ->
                     for p in g.players
                         if io.sockets.sockets[p.socket] 
                             has_active = true
+          
+                    keep = false
 
-                    if (g.state != req_state && has_active)
+                    if req_state == GAME_LOBBY && not has_active && g.state != GAME_FINISHED
+                        keep = true
+
+                    if req_state == g.state
+                        keep = true
+
+                    if not keep
                         continue
 
                     response.push
