@@ -142,9 +142,12 @@
             
             <form id="form-give-clue">
                 <div id="spyinfo"></div>
-                <input type="text" id="clue_entry" class="form-control" maxlength="24" placeholder="Clue" autofocus>
-                <select id="clue_numwords">
-                </select>
+      
+                     <div>
+                             <input type="text" id="clue_entry" class="form-control" style="width:70%;display: inline-block;" maxlength="24" placeholder="Clue" autofocus></input>
+                             <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="clue_numwords"></select>
+                     </div>
+                
                 <br />
                 <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
           
