@@ -405,7 +405,7 @@ jQuery ->
                         li.addClass("blackteam")
 
                 #Make players selectable for the leader (to propose quest)
-                if (game.currentTeam == me.team && not (me.spy) && not (w.guessed)) || (game.isCoop && game.currentTeam == TEAM_BLUE && me.spy && w.kind == WORD_BLUE && not(w.guessed))
+                if game.state == GAME_VOTE && (game.currentTeam == me.team && not (me.spy) && not (w.guessed)) || (game.isCoop && game.currentTeam == TEAM_BLUE && me.spy && w.kind == WORD_BLUE && not(w.guessed))
 
                     li.on 'click', (e) ->
                         select_for_guess($(e.target))
@@ -417,6 +417,22 @@ jQuery ->
 
                 $("#players").append(li)
 
+            $("#clues").empty()
+
+            gclues = game.clues
+
+            for c in gclues.reverse()
+                li = $("<li>")
+                    .addClass("list-group-item")
+                    .text(c.word)
+                    .append($('<span>').addClass("pull-right").text(c.numWords))
+                if c.team == TEAM_RED
+                    li.addClass("redteam")
+                else if c.team == TEAM_BLUE
+                    li.addClass("blueteam")
+
+                $("#clues").append(li)
+
             #Make quest proposal button visible to leader
             $("#leaderinfo").show()
 
@@ -425,27 +441,74 @@ jQuery ->
             else if me.team == TEAM_BLUE
                    teamstr = "Blue"
 
-            if (game.state == GAME_VOTE || game.state == GAME_CLUE) 
-                if (game.currentTeam == me.team && not (me.spy))
+            if me.spy
+                $("#team_form").hide()
+                $("#btn_pass_turn").hide()
+            else
+                $("#form-give-clue").hide()
+
+            if (game.state == GAME_VOTE && game.currentTeam == me.team) 
+                if not (me.spy)
                     $("#btn_select_guess").show()
                     $("#btn_pass_turn").show()
-                    $("#leaderinfo").html("You are on team " + teamstr + ". Select a word from the list then press this button.")
-                else if (game.currentTeam == TEAM_BLUE && game.isCoop && me.spy)
+                    if game.guessesLeft > 10
+                        guessstr = "You have no guess limit."
+                     else
+                        guessstr = game.guessesLeft + " guesses left."
+
+                    $("#teaminfo").html("You are on team " + teamstr + ". Guess a word. " + guessstr)
+                else
+                    $("#btn_give_clue").hide()
+                    $("#clue_entry").hide()
+                    $("#clue_numwords").hide()
+                    $("#spyinfo").html("You are the " + teamstr + " leader. Waiting for team to guess.")
+
+            if (game.currentTeam != me.team)
+                if me.spy
+                    $("#btn_give_clue").hide()
+                    $("#clue_entry").hide()
+                    $("#clue_numwords").hide()
+                    $("#spyinfo").html("You are the " + teamstr + " leader. It is not your turn.")
+                else 
+                    $("#btn_select_guess").hide()
+                    $("#btn_pass_turn").hide()
+                    if me.team == TEAM_NONE
+                        $("#teaminfo").html("You are spectating.")
+                    else
+                        $("#teaminfo").html("You are on team " + teamstr + ". It is not your turn")
+           
+            if (game.state == GAME_VOTE && game.currentTeam == TEAM_BLUE && game.isCoop && me.spy)
+                    $("#team_form").show()
                     $("#btn_select_guess").show()
                     $("#btn_pass_turn").hide()
-                    $("#leaderinfo").html("Your team guessed incorrectly. Pick a blue card to hide.")
+                    $("#teaminfo").html("Red team turn is over. Pick a blue card to hide.")
+                    $("#spyinfo").html("")
+
+            if (game.state == GAME_CLUE && game.currentTeam == me.team)
+                if me.spy
+                    $("#btn_give_clue").show()
+                    $("#clue_entry").show()
+                    $("#clue_numwords").show()
+
+                    remaining = 0
+                    for w in game.words
+                        if (w.kind == WORD_RED && me.team == TEAM_RED) || (w.kind == WORD_BLUE && me.team == TEAM_BLUE)
+                            if not w.guessed
+                                remaining += 1
+ 
+                    select = '<option val=-1></option>'
+                    for i in [0..remaining]
+                        select += '<option val=' + i + '>' + i + '</option>'
+                    select += '<option val=100>Infinite</option>'
+
+                    $("#clue_numwords").html(select)
+                    $('#clue_numwords option[val="-1"]').attr("selected", "selected");
+                    $("#clue_entry").val("")
+                    $("#spyinfo").html("You are the " + teamstr + " leader. Enter a clue.")
                 else
                     $("#btn_select_guess").hide()
                     $("#btn_pass_turn").hide()
-                    if me.spy
-                        if game.currentTeam == me.team
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. Give a clue!")
-                        else
-                            $("#leaderinfo").html("You are the " + teamstr + " leader. It is not your turn.")
-                    else
-                         $("#leaderinfo").html("You are on team " + teamstr + ". It is not your turn.")
-                    if me.team == TEAM_NONE
-                            $("#leaderinfo").html("You are spectating.")
+                    $("#teaminfo").html("You are on team " + teamstr + ". Waiting for a clue.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -513,7 +576,21 @@ jQuery ->
             socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
         else
             return
+    $("#form-give-clue").on 'submit', (e) ->
+        e.preventDefault()
+        word = $("#clue_entry").val()
+        numWords = $("#clue_numwords").val()
 
+        clue =
+            word : word
+            numWords : numWords
+
+        if word.length > 0 && numWords.length > 0
+            $("#clue_entry").hide()
+            $("#clue_numwords").hide()
+            socket.emit('give_clue', clue)
+        else
+            $("#spyinfo").html("You must give a valid clue!")
 
     $("#form-select-guess").on 'submit', (e) ->
         e.preventDefault()

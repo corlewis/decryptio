@@ -90,7 +90,7 @@ gameSchema = new mongoose.Schema
     clues           : [
         team        : Number
         word        : String
-        numWords    : Number
+        numWords    : String
     ]
     words           : [
         word        : String
@@ -108,6 +108,7 @@ gameSchema = new mongoose.Schema
         ]
     ]
     currentTeam     : Number
+    guessesLeft     : Number
     winningTeam     : Number
     isCoop          : Boolean
     reconnect_vote  : [Number]
@@ -251,8 +252,9 @@ gameSchema.methods.check_for_game_end = () ->
     return
 
 gameSchema.methods.start_game = (order, teams, is_coop) ->
-    this.state = GAME_VOTE
+    this.state = GAME_CLUE
     this.currentTeam = TEAM_RED
+    this.guessesLeft = 0
     this.winningTeam = 0
     for p in this.players
         p.spy = teams[p.id].spy

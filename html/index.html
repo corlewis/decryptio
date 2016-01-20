@@ -133,11 +133,23 @@
 
             <form id="form-select-guess">
                 <ul class="list-group" id="players"></ul>
-                
-                <div id="leaderinfo">You are the leader, select players from the list then press this button.</div>
-                <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Word</button>
+                <ul class="list-group" id="clues"></ul>
+                <div id="team_form">  
+                    <div id="teaminfo"></div>
+                    <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Word</button>
+                </div>
             </form>
+            
+            <form id="form-give-clue">
+                <div id="spyinfo"></div>
+                <input type="text" id="clue_entry" class="form-control" maxlength="24" placeholder="Clue" autofocus>
+                <select id="clue_numwords">
+                </select>
+                <br />
+                <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
+          
             </form>
+
 
             <br />
             <button class="btn btn-lg btn-block" id="btn_pass_turn">Pass Turn</button>

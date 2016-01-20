@@ -43,6 +43,8 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
         options         : game.gameOptions
         id              : game.id
         currentTeam     : game.currentTeam
+        guessesLeft     : game.guessesLeft
+        clues           : game.clues
         isCoop          : game.isCoop
         reconnect_user  : game.reconnect_user
         reconnect_vote  : game.reconnect_vote
@@ -74,7 +76,6 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
         words.push dw
         dw.kind = w.kind
         words_secret.push dw
-
 
     #Add in secret info specific to player as we go
     for s in socks
@@ -404,6 +405,32 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             game.currentTeam = other_team(game.currentTeam)
+            game.state = GAME_CLUE
+
+            game.save()
+            send_game_info(game)
+
+    socket.on 'give_clue', (data) ->
+        player = socket.player
+        return if not player
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            if game.state != GAME_CLUE
+                return
+
+            game.clues.push
+                word : data.word
+                numWords : data.numWords
+                team : game.currentTeam
+
+            game.guessesLeft = data.numWords
+            game.guessesLeft += 1
+
+            if game.guessesLeft == 1
+                game.guessesLeft = 100
+
+            game.state = GAME_VOTE
 
             game.save()
             send_game_info(game)
@@ -414,23 +441,30 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
-            if game.state == GAME_VOTE || game.state == GAME_CLUE
-                for w in game.words
-                    if w.word == data
-                        if w.guessed
-                            return
-                        w.guessed = true
-                        kind = w.kind
+            if game.state != GAME_VOTE
+                return
 
-            if kind == WORD_RED
+            for w in game.words
+                if w.word == data
+                    if w.guessed
+                        return
+                    w.guessed = true
+                    kind = w.kind
+
+            game.guessesLeft -= 1
+
+            if kind == WORD_RED && game.currentTeam != TEAM_RED
                 game.currentTeam = TEAM_RED
-            else if kind == WORD_BLUE
-                if game.currentTeam == TEAM_BLUE && game.isCoop
-                    game.currentTeam = TEAM_RED
-                else
-                    game.currentTeam = TEAM_BLUE
-            else if kind == WORD_GREY
+                game.state = GAME_CLUE
+            else if kind == WORD_BLUE && game.currentTeam != TEAM_BLUE
+                game.currentTeam = TEAM_BLUE
+                game.state = GAME_CLUE
+            else if game.isCoop && kind == WORD_BLUE && game.currentTeam == TEAM_BLUE
+                game.currentTeam = TEAM_RED
+                game.state = GAME_CLUE
+            else if kind == WORD_GREY || game.guessesLeft < 1
                 game.currentTeam = other_team(game.currentTeam)
+                game.state = GAME_CLUE
 
             game.check_for_game_end()
             game.save()
