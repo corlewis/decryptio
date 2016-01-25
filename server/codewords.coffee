@@ -109,7 +109,6 @@ io.on 'connection', (socket) ->
             player.socket = socket.id
             player.save()
             socket.player = player
-
             if not player.currentGame
                 socket.join('lobby')
                 send_game_list()
@@ -171,6 +170,7 @@ io.on 'connection', (socket) ->
             #Player is changing their name
             player.name = data.name
             player.save()
+            send_game_list()
             return
         Player.find {'name' : data.name}, (err, ps) ->
             if err || not ps
@@ -239,17 +239,24 @@ io.on 'connection', (socket) ->
             for p in game.players
                 if p.id.equals(player._id)
                     order = p.order
+                    team = p.team
             return if order == -1
+            return if team == TEAM_NONE
         
             if rvote
                 game.reconnect_vote.set(order, 1)
                 vs = (v for v in game.reconnect_vote)
                 vs = vs.sum()
-                if vs > ((game.players.length - 1) / 2)
+                realplayers = -1
+                for p in game.players
+                    if p.team != TEAM_NONE
+                        realplayers += 1
+      
+                if vs > (realplayers / 2)
                     sock = io.sockets.sockets[game.reconnect_sock]
                     #Save player's socket data
-                    player = sock.player
-                    if player
+                    if sock && sock.player
+                        player = sock.player
                         player.socket = sock.id
                         player.save()
                         sock.emit('player_id', player._id)
@@ -284,6 +291,9 @@ io.on 'connection', (socket) ->
     socket.on 'newgame', (game) ->
         player = socket.player
         return if not player
+        if not player.name || player.name == ""
+            socket.emit 'bad_login'
+            return
         game = new Game()
         game.add_player player
         game.save (err, game) ->
@@ -298,35 +308,53 @@ io.on 'connection', (socket) ->
         player = socket.player
         return if not player
 
+        if not player.name || player.name == ""
+            socket.emit 'bad_login'
+            return
+
         if player.currentGame
             player.leave_game (err, game) ->
                 if game then send_game_info(game)
                 send_game_list()
         Game.findById game_id, (err, game) ->
-
             return if not game
-
 
             if game.state == GAME_PREGAME || game.state == GAME_FINISHED
                 send_game_list()
                 return
             new_player = true
             for gp in game.players
-                if gp.id.equals(player_id)                    
+                if gp.id.equals(player_id) && gp.name == player.name 
                     gp.id = player_id
                     gp.socket = socket.id
                     gp.left = false
                     new_player = false
-
+            added = false
+            reconnected = false
             if new_player
-                game.add_player player
+                added = game.add_player player
+                if not added
+                    ex_gp = undefined
+                    for gp in game.players
+                        if gp.name == player.name
+                            ex_gp = gp
+
+                    data =
+                        id      : game._id
+                        name    : game.name()
+                        player  : ex_gp.id
+                    socket.emit('reconnectlist', [data])
+                    reconnected = true
+                    
             #TODO check if player was actually added
-            game.save (err, game) ->
-                socket.leave('lobby')
-                player.currentGame = game._id
-                player.save()
-                send_game_list()
-                send_game_info(game)
+            if not reconnected
+                game.save (err, game) ->
+                    socket.leave('lobby')
+                    player.currentGame = game._id
+                    player.save()
+                    socket.player = player
+                    send_game_list()
+                    send_game_info(game)
 
     socket.on 'reconnecttogame', () ->
         player = socket.player
@@ -405,7 +433,11 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             game.currentTeam = other_team(game.currentTeam)
-            game.state = GAME_CLUE
+
+            if game.isCoop && game.currentTeam == TEAM_BLUE
+                game.state = GAME_VOTE
+            else
+                game.state = GAME_CLUE
 
             game.save()
             send_game_info(game)

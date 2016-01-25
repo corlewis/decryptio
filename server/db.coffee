@@ -48,8 +48,11 @@ playerSchema = new mongoose.Schema
 
 playerSchema.methods.leave_game = (cb) ->
     player = this
+
     Game.findById this.currentGame, (err, game) ->
-        return if err || not game
+        if err || not game
+            cb(err, game)
+            return
 
         for p in game.players
             if p.id.equals(player._id)
@@ -132,6 +135,7 @@ gameSchema.methods.add_player = (p) ->
         spy : undefined
         team : TEAM_NONE
         info : []
+   
     return true
 
 gameSchema.methods.get_player = (id) ->

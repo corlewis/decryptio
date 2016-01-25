@@ -57,10 +57,17 @@ jQuery ->
 
     socket.on 'bad_login', () ->
         $("#signin").show()
+        $("#lobby").hide()
+        $("#game").hide()
+        $("#reconnectlist").hide()
         #$.removeCookie('player_id')
         
     socket.on 'reconnectlist', (games) ->
         $("#login").show()
+        $("#lobby").hide()
+        $("#game").hide()
+        $("#disconnected").hide()
+        $("#reconnectlist").empty()
         for g in games
             do (g) ->
                 join_btn = $('<a>')
@@ -95,6 +102,7 @@ jQuery ->
 
         return if $("#pregame").is(":visible")
         return if $("#game").is(":visible")
+        return if $("#reconnectlist").is(":visible")
 
         $("#lobby").show()
         $("#newgamelist").empty()
