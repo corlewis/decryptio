@@ -2,6 +2,7 @@ Array::sum = () ->
     @reduce (x, y) -> x + y
 
 VERSION = 2
+#timer_handle = undefined
 
 jQuery ->
     
@@ -127,6 +128,10 @@ jQuery ->
     socket.on 'kicked', () ->
         $("#pregame").hide()
         $("#game").hide()
+
+    socket.on 'timeleft', (data) ->
+        timeleft = data.timeleft
+        console.log('timeleft', timeleft)
 
     socket.on 'teaminfo', (game) ->
        if game.state != GAME_PREGAME
@@ -313,9 +318,16 @@ jQuery ->
             if ishost
                 select = ''
                 for i in [0..8]
-                    select += '<option val=' + i + '>' + i + '</option>'
+                    select += '<option value=' + i + '>' + i + '</option>'
                 $("#opt_assassins").html(select)
-                $('#opt_assassins option[val="1"]').attr("selected", "selected");
+                $('#opt_assassins option[value="1"]').attr("selected", "selected");
+
+                select = '<option value=0>No Limit</option>'
+                for i in [1..10]
+                    select += '<option value=' + i + '>' + i * 100 + ' Seconds </option>'
+ 
+                $("#opt_timelimit").html(select)
+                $('#opt_timelimit option[value="0"]').attr("selected", "selected");
      
                 players = $("#gameinfo li")
                 
@@ -383,6 +395,12 @@ jQuery ->
             window.have_game_info = true
 
         else
+            #if not timer_handle 
+            #   timer_handle = setInterval ->
+            #       socket.emit 'timeleft'
+            #     , 1000
+
+
             $("#pregame").hide()
             $("#game").show()
 
@@ -430,6 +448,9 @@ jQuery ->
             gclues = game.clues
 
             for c in gclues.reverse()
+                if c.numWords > 10
+                    c.numWords = "Infinite"
+
                 li = $("<li>")
                     .addClass("list-group-item")
                     .text(c.word)
@@ -506,11 +527,11 @@ jQuery ->
  
                     select = '<option val=-1></option>'
                     for i in [0..remaining]
-                        select += '<option val=' + i + '>' + i + '</option>'
-                    select += '<option val=100>Infinite</option>'
+                        select += '<option value=' + i + '>' + i + '</option>'
+                    select += '<option value=100>Infinite</option>'
 
                     $("#clue_numwords").html(select)
-                    $('#clue_numwords option[val="-1"]').attr("selected", "selected");
+                    $('#clue_numwords option[value="-1"]').attr("selected", "selected");
                     $("#clue_entry").val("")
                     $("#spyinfo").html("You are the " + teamstr + " leader. Enter a clue.")
                 else
@@ -580,6 +601,9 @@ jQuery ->
         is_coop = (red_spies == 1) && red_team == players.length
         options = {}
         options['num_assassins'] = $("#opt_assassins").val()
+        options['time_limit'] = $("#opt_timelimit").val()
+        console.log('options', options)
+
         if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
             socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
         else
@@ -588,6 +612,7 @@ jQuery ->
         e.preventDefault()
         word = $("#clue_entry").val()
         numWords = $("#clue_numwords").val()
+        console.log('numWords', numWords)
 
         clue =
             word : word

@@ -76,6 +76,7 @@ gameSchema = new mongoose.Schema
     state       : {type: Number, default: GAME_LOBBY}
     gameOptions : {
         num_assassins  : {type: Number, default: 1}
+        time_limit     : {type: Number, default: 0}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
@@ -93,7 +94,7 @@ gameSchema = new mongoose.Schema
     clues           : [
         team        : Number
         word        : String
-        numWords    : String
+        numWords    : Number
     ]
     words           : [
         word        : String
@@ -112,6 +113,7 @@ gameSchema = new mongoose.Schema
     ]
     currentTeam     : Number
     guessesLeft     : Number
+    roundStart      : Date
     winningTeam     : Number
     isCoop          : Boolean
     reconnect_vote  : [Number]
@@ -260,6 +262,8 @@ gameSchema.methods.start_game = (order, teams, is_coop) ->
     this.currentTeam = TEAM_RED
     this.guessesLeft = 0
     this.winningTeam = 0
+    this.roundStart = Date.now
+
     for p in this.players
         p.spy = teams[p.id].spy
         p.team = teams[p.id].team

@@ -396,13 +396,28 @@ io.on 'connection', (socket) ->
                             s.emit('kicked')
                             s.join('lobby')
                         send_game_list()
+
+    socket.on 'timeleft', () ->
+        player = socket.player
+        return if not player
+ 
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            timeleft = Math.floor ( (Date.now - game.roundStart) / 1000)
+
+            timeinfo = 
+                timeleft : timeleft
+
+            socket.emit('timeleft', timeinfo)
    
     socket.on 'teaminfo', (data) ->
         player = socket.player
         return if not player
 
         Game.findById player.currentGame, (err, game) ->
-            
+            return if err || not game
+
             for p in game.players
                 p.team = data[p.id].team
                 p.spy = data[p.id].spy
@@ -459,7 +474,7 @@ io.on 'connection', (socket) ->
             game.guessesLeft = data.numWords
             game.guessesLeft += 1
 
-            if game.guessesLeft == 1 || data.numWords == "Infinite"
+            if game.guessesLeft == 1
                 game.guessesLeft = 100
 
             game.state = GAME_VOTE
