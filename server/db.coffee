@@ -77,6 +77,7 @@ gameSchema = new mongoose.Schema
     gameOptions : {
         num_assassins  : {type: Number, default: 1}
         time_limit     : {type: Number, default: 0}
+        start_time_limit : {type: Number, default: 0}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
@@ -114,6 +115,7 @@ gameSchema = new mongoose.Schema
     currentTeam     : Number
     guessesLeft     : Number
     roundStart      : Date
+    timeLimit       : Number
     winningTeam     : Number
     isCoop          : Boolean
     reconnect_vote  : [Number]
@@ -234,6 +236,25 @@ gameSchema.methods.setup_words = () ->
         else return 0
     this.words.sort(dosort)
 
+gameSchema.methods.other_team = () ->
+    if this.currentTeam == TEAM_RED
+        return TEAM_BLUE
+    else if this.currentTeam == TEAM_BLUE
+        return TEAM_RED
+    else
+        console.log('No other team:', team)
+        return TEAM_NONE
+
+
+gameSchema.methods.next_turn = () ->
+    this.currentTeam = this.other_team()
+    this.timeLimit = this.gameOptions.time_limit
+    this.roundStart = Date.now()
+    this.state = GAME_CLUE
+    if this.currentTeam == TEAM_BLUE && this.isCoop
+        this.state = GAME_VOTE
+
+
 gameSchema.methods.check_for_game_end = () ->
     red = ((if w.kind == WORD_RED and w.guessed then 1 else 0) for w in this.words)
     red = red.sum()
@@ -257,12 +278,18 @@ gameSchema.methods.check_for_game_end = () ->
 
     return
 
+gameSchema.methods.time_left = ->
+    round_time = Math.floor ((Date.now() - this.roundStart) / 1000)
+    time_left = this.timeLimit - round_time
+    return time_left
+
 gameSchema.methods.start_game = (order, teams, is_coop) ->
     this.state = GAME_CLUE
     this.currentTeam = TEAM_RED
     this.guessesLeft = 0
     this.winningTeam = 0
-    this.roundStart = Date.now
+    this.roundStart = Date.now()
+    this.timeLimit = this.gameOptions.start_time_limit
 
     for p in this.players
         p.spy = teams[p.id].spy

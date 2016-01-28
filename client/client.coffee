@@ -2,7 +2,8 @@ Array::sum = () ->
     @reduce (x, y) -> x + y
 
 VERSION = 2
-#timer_handle = undefined
+timer_handle = undefined
+can_end_turn = false
 
 jQuery ->
     
@@ -131,7 +132,23 @@ jQuery ->
 
     socket.on 'timeleft', (data) ->
         timeleft = data.timeleft
-        console.log('timeleft', timeleft)
+        neg = ""
+        if timeleft < 0
+            minutes = Math.ceil (timeleft / 60)
+            seconds = timeleft - minutes * 60
+            neg = "-"
+            minutes *= -1
+            seconds *= -1
+        else
+            minutes = Math.floor (timeleft / 60)
+            seconds = timeleft - minutes * 60
+
+        if seconds < 10
+            seconds = "0" + seconds
+
+        $("#timeleft").text("Time left for clue: " + neg + minutes + ":" + seconds)
+        if can_end_turn && timeleft < 0
+            $("#btn_force_end").show()
 
     socket.on 'teaminfo', (game) ->
        if game.state != GAME_PREGAME
@@ -167,9 +184,17 @@ jQuery ->
         $("#stale_version").hide()
         $("#btn_randomize_spies").hide()
         $("#btn_randomize_teams").hide()
+        $("#btn_force_end").hide()
+
         $("#lobby").hide()
+        $("#timeleft").hide()
 
         if game.state == GAME_LOBBY
+
+            if timer_handle
+               clearInterval(timer_handle) 
+               timer_handle = undefined
+
             $("#pregame").show()
             $("#gameinfo").empty()
             $("#btn_start_game").hide()
@@ -324,10 +349,14 @@ jQuery ->
 
                 select = '<option value=0>No Limit</option>'
                 for i in [1..10]
-                    select += '<option value=' + i + '>' + i * 100 + ' Seconds </option>'
+                    secs = i * 30
+                    select += '<option value=' + secs + '>' + secs + ' Seconds </option>'
  
                 $("#opt_timelimit").html(select)
                 $('#opt_timelimit option[value="0"]').attr("selected", "selected");
+
+                $("#opt_starttimelimit").html(select)
+                $('#opt_starttimelimit option[value="0"]').attr("selected", "selected");
      
                 players = $("#gameinfo li")
                 
@@ -395,12 +424,6 @@ jQuery ->
             window.have_game_info = true
 
         else
-            #if not timer_handle 
-            #   timer_handle = setInterval ->
-            #       socket.emit 'timeleft'
-            #     , 1000
-
-
             $("#pregame").hide()
             $("#game").show()
 
@@ -409,7 +432,17 @@ jQuery ->
             for p in game.players
                 if p.id == game.me.id
                     me = p
-            
+            can_end_turn = game.currentTeam != me.team && me.spy && game.state == GAME_CLUE && game.timeLimit > 0
+ 
+            if not timer_handle && game.timeLimit > 0
+               timer_handle = setInterval ->
+                   socket.emit 'timeleft'
+                 , 500
+            if not (game.timeLimit > 0) && timer_handle
+                clearInterval(timer_handle)
+                timer_handle = undefined
+
+ 
             $("#players").empty().addClass("wordlist")
             for w in game.words
                 li = $("<li>")
@@ -463,7 +496,8 @@ jQuery ->
                 $("#clues").append(li)
 
             #Make quest proposal button visible to leader
-            $("#leaderinfo").show()
+            $("#teaminfo").show()
+            $("#team_form").show()
 
             if me.team == TEAM_RED
                    teamstr = "Red"
@@ -472,9 +506,16 @@ jQuery ->
 
             if me.spy
                 $("#team_form").hide()
+                $("#spy_form").show()
                 $("#btn_pass_turn").hide()
+                $("#form-give-clue").show()
             else
                 $("#form-give-clue").hide()
+
+            if game.state == GAME_CLUE && game.timeLimit > 0
+                $("#timeleft").show()
+            else 
+                $("#timeleft").hide()
 
             if (game.state == GAME_VOTE && game.currentTeam == me.team) 
                 if not (me.spy)
@@ -497,6 +538,8 @@ jQuery ->
                     $("#btn_give_clue").hide()
                     $("#clue_entry").hide()
                     $("#clue_numwords").hide()
+                    if can_end_turn && game.timeLeft < 0 && game.timeLimit > 0
+                        $("#btn_force_end").show()
                     $("#spyinfo").html("You are the " + teamstr + " leader. It is not your turn.")
                 else 
                     $("#btn_select_guess").hide()
@@ -602,6 +645,7 @@ jQuery ->
         options = {}
         options['num_assassins'] = $("#opt_assassins").val()
         options['time_limit'] = $("#opt_timelimit").val()
+        options['start_time_limit'] = $("#opt_starttimelimit").val()
         console.log('options', options)
 
         if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
@@ -640,6 +684,10 @@ jQuery ->
             socket.emit('make_guess', guess)
         else
             $("#leaderinfo").html("You must make a guess!")
+
+    $("#btn_force_end").on 'click', (e) ->
+        $("#btn_force_end").hide()
+        socket.emit 'force_end'
 
     $("#btn_submitvote").on 'click', (e) ->
         radio = $("input[name=vote]:checked").val()

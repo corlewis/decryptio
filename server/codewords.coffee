@@ -9,15 +9,6 @@ Array::sum = () ->
 
 VERSION = 2
 
-other_team = (team) ->
-    if team == TEAM_RED
-        TEAM_BLUE
-    else if team == TEAM_BLUE
-        TEAM_RED
-    else
-        console.log('No other team:', team)
-        return TEAM_NONE
-
 
 send_game_list = () ->
     Game.find {}, (err, games) ->
@@ -44,6 +35,8 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
         id              : game.id
         currentTeam     : game.currentTeam
         guessesLeft     : game.guessesLeft
+        timeLimit       : game.timeLimit
+        timeLeft        : game.time_left()
         clues           : game.clues
         isCoop          : game.isCoop
         reconnect_user  : game.reconnect_user
@@ -87,9 +80,14 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
         else
             data.words = words
         if s.socket
+            timeinfo = 
+                timeleft : data.timeLeft
+
+            s.socket.emit('timeleft', timeinfo)
             s.socket.emit(tagged, data)
         data.words = []
         data.players[i].info = []
+
 
 #
 # Socket handling
@@ -404,12 +402,35 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
-            timeleft = Math.floor ( (Date.now - game.roundStart) / 1000)
-
             timeinfo = 
-                timeleft : timeleft
+                timeleft : game.time_left()
 
             socket.emit('timeleft', timeinfo)
+
+    socket.on 'force_end', () ->
+        player = socket.player
+        return if not player
+   
+
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            time_left = game.time_left()
+
+            if time_left > 0 || game.state != GAME_CLUE
+                return
+            else
+                game.clues.push
+                    word : "<Turn Timeout>"
+                    numWords : 100
+                    team : game.currentTeam
+
+                game.guessesLeft = 100
+                game.state = GAME_VOTE
+                game.save()
+                send_game_info(game)
+                  
+
    
     socket.on 'teaminfo', (data) ->
         player = socket.player
@@ -435,6 +456,8 @@ io.on 'connection', (socket) ->
             teams = data.teams
             is_coop = data.is_coop 
             game.gameOptions.num_assassins = data.options.num_assassins
+            game.gameOptions.time_limit = data.options.time_limit
+            game.gameOptions.start_time_limit = data.options.start_time_limit
 
             #Sanity check
             return if Object.keys(order).length != game.players.length
@@ -447,13 +470,7 @@ io.on 'connection', (socket) ->
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
-            game.currentTeam = other_team(game.currentTeam)
-
-            if game.isCoop && game.currentTeam == TEAM_BLUE
-                game.state = GAME_VOTE
-            else
-                game.state = GAME_CLUE
-
+            game.next_turn()
             game.save()
             send_game_info(game)
 
@@ -511,11 +528,7 @@ io.on 'connection', (socket) ->
                 switch_teams = true
 
             if switch_teams
-                game.currentTeam = other_team(game.currentTeam)
-                if (not game.isCoop) || game.currentTeam == TEAM_RED
-                    game.state = GAME_CLUE
-                else
-                    game.state = GAME_VOTE
+                game.next_turn()
 
             game.check_for_game_end()
             game.save()

@@ -81,6 +81,10 @@
                         <select id="opt_timelimit" style="float:right;">
                         </select>
                    </li>
+                   <li class="list-group-item">Starting Time Limit
+                        <select id="opt_starttimelimit" style="float:right;">
+                        </select>
+                   </li>
                    
                 </ul>
             </div>
@@ -139,6 +143,7 @@
             <form id="form-select-guess">
                 <ul class="list-group" id="players"></ul>
                 <ul class="list-group" id="clues"></ul>
+                <div id="timeleft"></div>
                 <div id="team_form">  
                     <div id="teaminfo"></div>
                     <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Word</button>
@@ -147,7 +152,6 @@
             
             <form id="form-give-clue">
                 <div id="spyinfo"></div>
-      
                      <div>
                              <input type="text" id="clue_entry" class="form-control" style="width:70%;display: inline-block;" maxlength="24" placeholder="Clue" autofocus></input>
                              <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="clue_numwords"></select>
@@ -158,9 +162,11 @@
           
             </form>
 
+            <br />
+            <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">Force End Turn</button>
 
             <br />
-            <button class="btn btn-lg btn-block" id="btn_pass_turn">Pass Turn</button>
+            <button class="btn btn-lg btn-block btn-info" id="btn_pass_turn">Pass Turn</button>
 
             <br />
             <button class="btn btn-lg btn-danger btn-block" id="btn_quit">Quit Game</button>
