@@ -1,4 +1,4 @@
-SERVERSRC = server/db.coffee server/config.coffee server/server.coffee server/codewords.coffee
+SERVERSRC = server/words.coffee server/db.coffee server/config.coffee server/server.coffee server/codewords.coffee
 SERVER = codewords.js
 
 CLIENTSRC = server/config.coffee client/client.coffee

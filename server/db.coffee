@@ -148,54 +148,6 @@ gameSchema.methods.get_player = (id) ->
             return p
     return null
 
-globalWords_raw = [
-   "STRING", "POISON", "PYRAMID", "SCUBA DIVER",
-   "UNDERTAKER", "AZTEC", "ORANGE", "SMUGGLER", "PUPIL",
-   "WITCH", "VACUUM", "SOLDIER", "PANTS", "PIPE", "IVORY",
-   "SNOW", "BARK", "EAGLE", "BEIJING", "TORCH", "TAG",
-   "NUT", "FLUTE", "LINK", "TIME", "LEPRECHAUN", "KID",
-   "POLICE", "ROCK", "SCALE", "HOLE", "POST", "LIGHT",
-   "TRIANGLE", "BELL", "WATCH", "ARM", "ROSE", "MODEL",
-   "THEATER", "MOUSE", "HORSESHOE", "ORGAN", "KNIFE",
-   "CELL", "STADIUM", "FOOT", "LIMOUSINE", "CONTRACT",
-   "PLATE", "LINE", "MARCH", "AUSTRALIA", "DRAGON",
-   "COVER", "CHURCH", "HONEY", "WAR", "TOKYO", "CHANGE",
-   "BERMUDA", "LEAD", "LEMON", "CAP", "BELT", "RAY", "BEAT",
-   "FALL", "LONDON", "WIND", "NURSE", "PASS", "KNIGHT", "SLIP",
-   "SHOP", "FIGHTER", "BOW", "MERCURY", "BALL", "MATCH", "OLIVE",
-   "POINT", "COTTON", "DATE", "FRANCE", "NET", "CROSS", "DIAMOND",
-   "TIE", "COURT", "CARD", "HOOD", "DUCK", "BAND", "ROBIN", "POOL",
-   "STAR", "BRIDGE", "FIRE", "RING", "HEART", "HORN", "SPRING", "TABLE",
-   "WHALE", "SEAL", "MOON", "BLOCK", "DRILL", "FISH", "TUBE", "GRACE",
-   "IRON", "DOCTOR", "ROULETTE", "DEGREE", "WAKE", "NEEDLE", "TABLET",
-   "PIE", "GREEN", "AGENT", "DROP", "SNOWMAN", "CAPITAL", "CANADA",
-   "TRACK", "BANK", "FOREST", "STRIKE", "CONCERT", "BOMB", "CLIFF",
-   "COPPER", "SOUL", "CHOCOLATE", "SKYSCRAPER", "CASINO", "JET", "SHAKESPEARE",
-   "WAVE", "SHADOW", "GLOVE", "LITTER", "COMIC", "MILLIONAIRE", "TELESCOPE",
-   "AMAZON", "SHOT", "PLANE", "NIGHT", "PLATYPUS", "WASHER", "TRAIN", "LAP",
-   "BOX", "IRON", "TUBE", "FIRE", "MERCURY", "INDIA", "BRIDGE", "DEGREE", "STAR",
-   "DOCTOR", "MOON", "BLOCK", "GREEN", "HORN", "SEAL", "CYCLE", "LUCK",
-   "CAT", "ROME", "STICK", "GAME", "FIELD", "LIFE", "MOUNT", "MATCH",
-   "POINT", "BAND", "ROULETTE", "ROUND", "ROBIN", "BOW", "POOL", "BALL",
-   "NET", "SHOP", "PASS", "CARD", "CROSS", "HOOK", "DECK", "PIRATE", "BUTTON",
-   "BUGLE", "PARK", "YARD", "BEACH", "HIMALAYAS", "MOUTH", "BAT",
-   "CONDUCTOR", "POUND", "NINJA", "TAG", "BOLT", "GIANT", "PAPER", "CZECH",
-   "GREECE", "FACE", "SLUG", "GROUND", "WORM", "CHEST", "FIGURE", "COMPOUND",
-   "CHARGE", "ICE", "GROUND", "FILM", "SQUARE", "HORSE", "TAP", "NAIL", "DOG",
-   "MASS", "SPACE", "SOCK", "SUB", "PAPER", "BERLIN", "OLYMPUS", "ALPS",
-   "CHINA", "CROWN", "BUFFALO", "BACK", "PART", "WAR", "HONEY", "JAM",
-   "CHURCH", "COVER", "LEAD", "BERMUDA", "CHANGE", "TOKYO", "EGYPT",
-   "BEAT", "RAY", "BELT", "CAP", "LEMON", "NURSE", "WIND", "LION",
-   "LONDON", "FALL", "BOOT", "DICE", "EYE", "BOARD", "SWITCH" 
-]
-
-Array::unique = ->
-  output = {}
-  output[@[key]] = @[key] for key in [0...@length]
-  value for key, value of output
-
-globalWords = globalWords_raw.unique()
-
 shuffle = (a) ->
       for i in [a.length-1..1]
           j = Math.floor Math.random() * (i + 1)
