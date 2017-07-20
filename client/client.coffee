@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 2
+VERSION = 3
 timer_handle = undefined
 can_end_turn = false
 

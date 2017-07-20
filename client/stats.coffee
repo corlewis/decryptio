@@ -85,3 +85,20 @@ displayGame = (game) ->
 
 
         $("#players").append(li)
+
+    $("#clues").empty()
+
+    for c in game.clues
+        if c.numWords > 10
+            c.numWords = "Infinite"
+
+        li = $("<li>")
+            .addClass("list-group-item")
+            .text(c.word)
+            .append($('<span>').addClass("pull-right").text(c.numWords))
+        if c.team == TEAM_RED
+            li.addClass("redteam")
+        else if c.team == TEAM_BLUE
+            li.addClass("blueteam")
+
+        $("#clues").append(li)
