@@ -508,12 +508,17 @@ io.on 'connection', (socket) ->
             if game.state != GAME_VOTE
                 return
 
+            currClue = game.clues[game.clues.length - 1]
             for w in game.words
                 if w.word == data
                     if w.guessed
                         return
                     w.guessed = true
                     kind = w.kind
+                    currClue.guesses.push
+                        word : data
+                        id : player._id
+                        team : kind
 
             game.guessesLeft -= 1
             switch_teams = false

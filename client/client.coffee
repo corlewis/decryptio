@@ -495,6 +495,22 @@ jQuery ->
 
                 $("#clues").append(li)
 
+                for g in c.guesses
+                    li = $("<li>")
+                        .addClass("list-group-item")
+                        .text(g.word)
+                        .append($('<span>').addClass("pull-right").text(g.id))
+                    if g.team == TEAM_RED
+                        li.addClass("redteam")
+                    else if g.team == TEAM_BLUE
+                        li.addClass("blueteam")
+                    else if w.kind == WORD_GREY
+                        li.addClass("noteam")
+                    else if w.kind == WORD_BLACK
+                        li.addClass("blackteam")
+
+                    $("#clues").append(li)
+
             #Make quest proposal button visible to leader
             $("#teaminfo").show()
             $("#team_form").show()
