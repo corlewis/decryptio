@@ -97,9 +97,9 @@ gameSchema = new mongoose.Schema
         word        : String
         numWords    : Number
         guesses     : [
-            word : String
-            id   : ObjectId
-            team : Number
+            word   : String
+            player : String
+            kind   : Number
         ]
     ]
     words           : [

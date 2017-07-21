@@ -487,6 +487,7 @@ io.on 'connection', (socket) ->
                 word : data.word
                 numWords : data.numWords
                 team : game.currentTeam
+                guesses : []
 
             game.guessesLeft = data.numWords
             game.guessesLeft += 1
@@ -516,9 +517,9 @@ io.on 'connection', (socket) ->
                     w.guessed = true
                     kind = w.kind
                     currClue.guesses.push
-                        word : data
-                        id : player._id
-                        team : kind
+                        word   : data
+                        player : player.name
+                        kind   : kind
 
             game.guessesLeft -= 1
             switch_teams = false

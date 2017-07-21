@@ -5,6 +5,21 @@ VERSION = 3
 timer_handle = undefined
 can_end_turn = false
 
+GAME_LOBBY         = 0
+GAME_PREGAME       = 1
+GAME_CLUE          = 2
+GAME_VOTE          = 3
+GAME_FINISHED      = 9
+
+TEAM_RED           = 1
+TEAM_BLUE          = 2
+TEAM_NONE          = 3
+
+WORD_RED           = 1
+WORD_BLUE          = 2
+WORD_GREY          = 3
+WORD_BLACK         = 4
+
 jQuery ->
     
     shuffle = (a) ->
@@ -34,21 +49,6 @@ jQuery ->
         $("#game").hide()
         $("#stale_version").hide()
         $("#disconnected").show()
-
-    GAME_LOBBY         = 0
-    GAME_PREGAME       = 1
-    GAME_CLUE          = 2
-    GAME_VOTE          = 3
-    GAME_FINISHED      = 9
-    
-    TEAM_RED           = 1
-    TEAM_BLUE          = 2
-    TEAM_NONE          = 3
-    
-    WORD_RED           = 1
-    WORD_BLUE          = 2
-    WORD_GREY          = 3
-    WORD_BLACK         = 4
 
     socket.on 'player_id', (player_id) ->
         $.cookie('player_id', player_id, {expires: 365})
@@ -478,38 +478,35 @@ jQuery ->
 
             $("#clues").empty()
 
-            gclues = game.clues
+            for c, index in game.clues.reverse()
+                guesses = $("<ul>")
+                    .attr("id", "guesses" + index)
+                    .addClass("list-group")
+                for g in c.guesses
+                    li = $("<li>")
+                        .addClass("list-group-item guessed")
+                        .text(g.word)
+                        .append($('<span>').text(g.player)
+                                           .addClass("pull-right " + team_to_class(c.team)))
+                    li.addClass(kind_to_class(g.kind))
 
-            for c in gclues.reverse()
+                    guesses.append(li)
+
                 if c.numWords > 10
                     c.numWords = "Infinite"
 
                 li = $("<li>")
+                    .attr("id", index)
                     .addClass("list-group-item")
                     .text(c.word)
                     .append($('<span>').addClass("pull-right").text(c.numWords))
-                if c.team == TEAM_RED
-                    li.addClass("redteam")
-                else if c.team == TEAM_BLUE
-                    li.addClass("blueteam")
+                    .append(guesses)
+                li.addClass(team_to_class(c.team))
+                li.on 'click', (e) ->
+                    $("#guesses" + $(e.target).attr("id")).toggle()
 
                 $("#clues").append(li)
-
-                for g in c.guesses
-                    li = $("<li>")
-                        .addClass("list-group-item")
-                        .text(g.word)
-                        .append($('<span>').addClass("pull-right").text(g.id))
-                    if g.team == TEAM_RED
-                        li.addClass("redteam")
-                    else if g.team == TEAM_BLUE
-                        li.addClass("blueteam")
-                    else if w.kind == WORD_GREY
-                        li.addClass("noteam")
-                    else if w.kind == WORD_BLACK
-                        li.addClass("blackteam")
-
-                    $("#clues").append(li)
+                $("#guesses" + index).hide()
 
             #Make quest proposal button visible to leader
             $("#teaminfo").show()
@@ -740,7 +737,6 @@ jQuery ->
 
 
 select_for_guess = (li) ->
-
         $("#players li").each () ->
             input = $($(this).children(":input")[0])
             $(this).removeClass("active")
@@ -749,3 +745,16 @@ select_for_guess = (li) ->
         input = $(li.children(":input")[0])
         li.addClass("active")
         input.attr(value: 1)
+
+kind_to_class = (kind) ->
+        if kind == WORD_RED
+            "redteam"
+        else if kind == WORD_BLUE
+            "blueteam"
+        else if kind == WORD_GREY
+            "noteam"
+        else if kind == WORD_BLACK
+            "blackteam"
+
+team_to_class = (team) ->
+        kind_to_class(team)
