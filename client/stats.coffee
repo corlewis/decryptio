@@ -102,11 +102,15 @@ displayGame = (game) ->
             .attr("id", index)
             .addClass("list-group-item")
             .text(c.word)
+            .prepend($('<span>').addClass("caret-right").html("&#9658"))
+            .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
             .append($('<span>').addClass("pull-right").text(c.numWords))
             .append(guesses)
         li.addClass(team_to_class(c.team))
         li.on 'click', (e) ->
             $("#guesses" + $(e.target).attr("id")).toggle()
+            $('.caret-right', $(e.target)).toggle()
+            $('.caret-down', $(e.target)).toggle()
 
         $("#clues").append(li)
         $("#guesses" + index).hide()
