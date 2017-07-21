@@ -454,14 +454,7 @@ jQuery ->
                     li.addClass("guessed")
 
                 if me.spy || w.guessed
-                    if w.kind == WORD_RED
-                        li.addClass("redteam")
-                    else if w.kind == WORD_BLUE
-                        li.addClass("blueteam")
-                    else if w.kind == WORD_GREY
-                        li.addClass("noteam")
-                    else if w.kind == WORD_BLACK
-                        li.addClass("blackteam")
+                    li.addClass(kind_to_class(w.kind))
 
                 #Make players selectable for the leader (to propose quest)
                 if game.state == GAME_VOTE && (game.currentTeam == me.team && not (me.spy) && not (w.guessed)) || (game.isCoop && game.currentTeam == TEAM_BLUE && me.spy && w.kind == WORD_BLUE && not(w.guessed))

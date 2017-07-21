@@ -75,15 +75,7 @@ displayGame = (game) ->
         if w.guessed
             li.addClass("guessed")
         
-        if w.kind == WORD_RED
-            li.addClass("redteam")
-        else if w.kind == WORD_BLUE
-            li.addClass("blueteam")
-        else if w.kind == WORD_GREY
-            li.addClass("noteam")
-        else if w.kind == WORD_BLACK
-            li.addClass("blackteam")
-
+        li.addClass(kind_to_class(w.kind))
 
         $("#players").append(li)
 
