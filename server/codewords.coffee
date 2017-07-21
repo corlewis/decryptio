@@ -410,7 +410,6 @@ io.on 'connection', (socket) ->
     socket.on 'force_end', () ->
         player = socket.player
         return if not player
-   
 
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
@@ -470,6 +469,11 @@ io.on 'connection', (socket) ->
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
+
+            p = game.get_player(player._id)
+            if game.state != GAME_VOTE || p.team != game.currentTeam
+                return
+
             game.next_turn()
             game.save()
             send_game_info(game)
@@ -480,7 +484,8 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
-            if game.state != GAME_CLUE
+            p = game.get_player(player._id)
+            if game.state != GAME_CLUE || p.team != game.currentTeam
                 return
 
             game.clues.push
@@ -506,7 +511,8 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
 
-            if game.state != GAME_VOTE
+            p = game.get_player(player._id)
+            if game.state != GAME_VOTE || p.team != game.currentTeam
                 return
 
             currClue = game.clues[game.clues.length - 1]
