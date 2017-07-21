@@ -512,7 +512,8 @@ io.on 'connection', (socket) ->
             return if err || not game
 
             p = game.get_player(player._id)
-            if game.state != GAME_VOTE || p.team != game.currentTeam
+            if game.state != GAME_VOTE ||
+               (p.team != game.currentTeam && not game.isCoop)
                 return
 
             currClue = game.clues[game.clues.length - 1]
