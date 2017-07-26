@@ -108,9 +108,9 @@ displayGame = (game) ->
             .append(guesses)
         li.addClass(team_to_class(c.team))
         li.on 'click', (e) ->
-            $("#guesses" + $(e.target).attr("id")).toggle()
-            $('.caret-right', $(e.target)).toggle()
-            $('.caret-down', $(e.target)).toggle()
+            $("#guesses" + $(e.currentTarget).attr("id")).toggle()
+            $('.caret-right', $(e.currentTarget)).toggle()
+            $('.caret-down', $(e.currentTarget)).toggle()
 
         $("#clues").append(li)
         $("#guesses" + index).hide()
