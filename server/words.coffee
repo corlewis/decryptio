@@ -110,7 +110,6 @@ globalWords = [
     "DRAFT",
     "DRAGON",
     "DRESS",
-    "DRESS",
     "DRILL",
     "DROP",
     "DUCK",
