@@ -33,6 +33,7 @@ globalWords = [
     "BERMUDA",
     "BERRY",
     "BILL",
+    "BLACK HOLE",
     "BLOCK",
     "BOARD",
     "BOLT",
