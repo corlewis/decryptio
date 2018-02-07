@@ -7,7 +7,7 @@ Q = require('q')
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 3
+VERSION = 4
 
 
 send_game_list = () ->
@@ -457,6 +457,7 @@ io.on 'connection', (socket) ->
             game.gameOptions.num_assassins = data.options.num_assassins
             game.gameOptions.time_limit = data.options.time_limit
             game.gameOptions.start_time_limit = data.options.start_time_limit
+            game.gameOptions.word_set = data.options.word_set
 
             #Sanity check
             return if Object.keys(order).length != game.players.length

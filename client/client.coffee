@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 3
+VERSION = 4
 timer_handle = undefined
 can_end_turn = false
 
@@ -19,6 +19,10 @@ WORD_RED           = 1
 WORD_BLUE          = 2
 WORD_GREY          = 3
 WORD_BLACK         = 4
+
+DEFAULT_WORDS      = 0
+DUET_WORDS         = 1
+ALL_WORDS          = 2
 
 jQuery ->
     
@@ -358,6 +362,12 @@ jQuery ->
                 $("#opt_starttimelimit").html(select)
                 $('#opt_starttimelimit option[value="0"]').attr("selected", "selected");
      
+                select = '<option value=' + DEFAULT_WORDS + '>Default Words</option>'
+                select += '<option value=' + DUET_WORDS + '>Duet Words</option>'
+                select += '<option value=' + ALL_WORDS + '>All Words</option>'
+
+                $("#opt_word_set").html(select)
+                $('#opt_word_set option[value=' + DEFAULT_WORDS + ']').attr("selected", "selected");
                 players = $("#gameinfo li")
                 
                 $("#btn_randomize_teams").show()
@@ -656,6 +666,7 @@ jQuery ->
         options['num_assassins'] = $("#opt_assassins").val()
         options['time_limit'] = $("#opt_timelimit").val()
         options['start_time_limit'] = $("#opt_starttimelimit").val()
+        options['word_set'] = $("#opt_word_set").val()
         console.log('options', options)
 
         if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop

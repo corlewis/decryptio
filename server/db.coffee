@@ -23,6 +23,10 @@ WORD_BLUE          = 2
 WORD_GREY          = 3
 WORD_BLACK         = 4
 
+DEFAULT_WORDS      = 0
+DUET_WORDS         = 1
+ALL_WORDS          = 2
+
 ObjectId = mongoose.Schema.Types.ObjectId
 
 
@@ -78,6 +82,7 @@ gameSchema = new mongoose.Schema
         num_assassins  : {type: Number, default: 1}
         time_limit     : {type: Number, default: 0}
         start_time_limit : {type: Number, default: 0}
+        word_set       : {type: Number, default: 0}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
@@ -160,7 +165,12 @@ shuffle = (a) ->
       return a
 
 gameSchema.methods.setup_words = () ->
-    words = shuffle(globalWords)
+    if this.gameOptions.word_set == DEFAULT_WORDS
+        words = shuffle(globalWords)
+    else if this.gameOptions.word_set == DUET_WORDS
+        words = shuffle(duetWords)
+    else
+        words = shuffle(globalWords.concat duetWords)
     start_assassins = 25 - this.gameOptions.num_assassins
 
     for i in [0..8]
