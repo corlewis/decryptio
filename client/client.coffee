@@ -1,28 +1,40 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 4
+VERSION = 1
 timer_handle = undefined
 can_end_turn = false
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
-GAME_CLUE          = 2
-GAME_VOTE          = 3
+GAME_ENCRYPT       = 2
+GAME_DECRYPT_RED   = 3
+GAME_DECRYPT_BLUE  = 4
 GAME_FINISHED      = 9
 
-TEAM_RED           = 1
-TEAM_BLUE          = 2
-TEAM_NONE          = 3
-
-WORD_RED           = 1
-WORD_BLUE          = 2
-WORD_GREY          = 3
-WORD_BLACK         = 4
+TEAM_RED           = 0
+TEAM_BLUE          = 1
+TEAM_NONE          = 2
+TEAMS              = [TEAM_RED, TEAM_BLUE]
 
 DEFAULT_WORDS      = 0
 DUET_WORDS         = 1
 ALL_WORDS          = 2
+
+other_team = (team) ->
+    if team == TEAM_RED
+        return TEAM_BLUE
+    else if team == TEAM_BLUE
+        return TEAM_RED
+    else
+        console.log('No other team:', team)
+        return TEAM_NONE
+
+team_to_str = (team) ->
+    if team == TEAM_RED
+        teamstr = "Red"
+    else if team == TEAM_BLUE
+        teamstr = "Blue"
 
 jQuery ->
     
@@ -150,7 +162,7 @@ jQuery ->
         if seconds < 10
             seconds = "0" + seconds
 
-        $("#timeleft").text("Time left for clue: " + neg + minutes + ":" + seconds)
+        $("#timeleft").text("Time left: " + neg + minutes + ":" + seconds)
         if can_end_turn && timeleft < 0
             $("#btn_force_end").show()
 
@@ -170,11 +182,6 @@ jQuery ->
             else if p.team == TEAM_BLUE
                 $(players[i]).addClass("blueteam")
 
-            $(players[i]).removeClass("spy")
-            if p.spy
-                $(players[i]).addClass("spy")
-
-       
 
     socket.on 'gameinfo', (game) ->
         if game.version != VERSION
@@ -266,25 +273,15 @@ jQuery ->
                     li.removeClass("redteam").addClass("blueteam")
                 li.find("input").attr("team",team)
 
-            set_spy = (li,is_spy) ->
-               if is_spy
-                   li.addClass("spy")
-                   li.find("input").attr("spy","true")
-               else
-                   li.removeClass("spy")
-                   li.find("input").attr("spy","false")
-
             emit_teams = () ->
                 teams = {}
                 players = $("#gameinfo li").each () ->
                     input = $(this).find("input")
                     player_id = input.attr("value")
                     team = parseInt(input.attr("team"),10)
-                    spy = input.attr("spy") == "true"
 
                     teams[player_id] = 
                         team : team
-                        spy : spy
 
                 socket.emit('teaminfo', teams)
                         
@@ -305,21 +302,6 @@ jQuery ->
 
 
                 if ishost then do (li, player_id) ->
-                    li.on 'click', (e) ->
-                         if not (li.is(e.target))
-                             return
-                         if player_id.attr("spy") == "true"
-                             set_spy(li, false)
-                         else
-                             spies = 0
-                             $("#gameinfo li").each () ->
-                                 if $(this).find("input").attr("spy") == "true"
-                                     spies += 1
-                             if spies < 2
-                                 set_spy(li, true)
-                         emit_teams()
-
-
                     red_btn = $("<button>")
                         .addClass("pull-right")
                         .addClass("btn")
@@ -345,84 +327,43 @@ jQuery ->
                 
                 $("#gameinfo").append li
             if ishost
-                select = ''
-                for i in [0..8]
-                    select += '<option value=' + i + '>' + i + '</option>'
-                $("#opt_assassins").html(select)
-                $('#opt_assassins option[value="1"]').attr("selected", "selected");
-
                 select = '<option value=0>No Limit</option>'
                 for i in [1..10]
                     secs = i * 30
                     select += '<option value=' + secs + '>' + secs + ' Seconds </option>'
  
-                $("#opt_timelimit").html(select)
-                $('#opt_timelimit option[value="0"]').attr("selected", "selected");
+                $("#opt_encrypt_timelimit").html(select)
+                $('#opt_encrypt_timelimit option[value="0"]').attr("selected", "selected");
 
-                $("#opt_starttimelimit").html(select)
-                $('#opt_starttimelimit option[value="0"]').attr("selected", "selected");
+                $("#opt_decrypt_timelimit").html(select)
+                $('#opt_decrypt_timelimit option[value="0"]').attr("selected", "selected");
      
+                select = ''
+                for i in [1..8]
+                    select += '<option value=' + i + '>' + i + '</option>'
+                $("#opt_num_words").html(select)
+                $('#opt_num_words option[value="4"]').attr("selected", "selected");
+
+                $("#opt_code_length").html(select)
+                $('#opt_code_length option[value="3"]').attr("selected", "selected");
+
                 select = '<option value=' + DEFAULT_WORDS + '>Default Words</option>'
                 select += '<option value=' + DUET_WORDS + '>Duet Words</option>'
                 select += '<option value=' + ALL_WORDS + '>All Words</option>'
 
                 $("#opt_word_set").html(select)
-                $('#opt_word_set option[value=' + DEFAULT_WORDS + ']').attr("selected", "selected");
+                $('#opt_word_set option[value=' + ALL_WORDS + ']').attr("selected", "selected");
                 players = $("#gameinfo li")
                 
                 $("#btn_randomize_teams").show()
                     .on 'click', (e) ->
-                        spies = []
-                        nonspies = []
-                        players.each (i, p) ->
-                            if $(this).find("input").attr("spy") == "true"
-                                spies.push(p)
-                            else
-                                nonspies.push(p)
-                    
-                        if spies.length < 2
-                            nonspies = $.merge(spies, nonspies)
-                        else
-                            sspies = shuffle(spies)
-                            set_team($(sspies[0]), TEAM_RED)
-                            set_team($(sspies[1]), TEAM_BLUE)
-                                  
-                        $.each shuffle(nonspies), (i, p) ->
+                        $.each shuffle(players), (i, p) ->
                             jitter = Math.floor(Math.random() * 2)
-                            middle = (nonspies.length - jitter) / 2
+                            middle = (players.length - jitter) / 2
                             if i < middle
                                 set_team($(this), TEAM_RED)
                             else if i >= middle
                                 set_team($(this), TEAM_BLUE)
-                        emit_teams()
-
-                $("#btn_randomize_spies").show()
-                    .on 'click', (e) ->
-                        red_spy = false
-                        blue_spy = false
-                        neither = []
-
-                        players.each (i, p) ->
-                            set_spy($(this), false)
-
-                        shuffle(players).each (i, p) ->
-                            team = parseInt($(this).find("input").attr("team"),10)
-                            if team == TEAM_RED && not (red_spy)
-                                set_spy($(this), true)
-                                red_spy = true
-                            else if team == TEAM_BLUE && not (blue_spy)
-                                set_spy($(this), true)
-                                blue_spy = true
-                            else
-                                neither.push(p)
-
-                        if not (red_spy)
-                            set_spy($(neither[0]), true)
-                            neither.splice(0,1)
-
-                        if not (blue_spy)
-                            set_spy($(neither[0]), true)
-
                         emit_teams()
     
                 $("#btn_start_game").show()
@@ -436,13 +377,21 @@ jQuery ->
         else
             $("#pregame").hide()
             $("#game").show()
-
-            #Draw the list of players
              
             for p in game.players
                 if p.id == game.me.id
                     me = p
-            can_end_turn = game.currentTeam != me.team && me.spy && game.state == GAME_CLUE && game.timeLimit > 0
+
+            m = game.messages[game.messages.length - 1]
+            if game.state == GAME_ENCRYPT
+                can_end_turn = game.timeLimit > 0 && m[me.team].message.finished &&
+                         not m[other_team me.team].message.finished
+            else if game.state == GAME_DECRYPT_RED
+                can_end_turn = game.timeLimit > 0 && m[TEAM_RED]["guess"+me.team].finished &&
+                         not m[TEAM_RED]["guess"+other_team me.team].finished
+            else if game.state == GAME_DECRYPT_BLUE
+                can_end_turn = game.timeLimit > 0 && m[TEAM_BLUE]["guess"+me.team].finished &&
+                         not m[TEAM_BLUE]["guess"+other_team me.team].finished
  
             if not timer_handle && game.timeLimit > 0
                timer_handle = setInterval ->
@@ -452,155 +401,135 @@ jQuery ->
                 clearInterval(timer_handle)
                 timer_handle = undefined
 
- 
-            $("#players").empty().addClass("wordlist")
-            for w in game.words
+            #Draw the scores
+            $("#red_results").empty()
+                             .html("&#x2714: " + game.score[TEAM_RED].intercepts + "/2 " +
+                                   "&#x2718: " + game.score[TEAM_RED].miscommunications + "/2")
+            $("#blue_results").empty()
+                             .html("&#x2714: " + game.score[TEAM_BLUE].intercepts + "/2 " +
+                                   "&#x2718: " + game.score[TEAM_RED].miscommunications + "/2")
+
+            #Draw the list of keywords
+            $("#keywords").empty().addClass("wordlist")
+            for w, i in game.keywords
                 li = $("<li>")
                     .addClass("list-group-item")
                     .addClass("wordlist")
-                    .text(w.word)
+                    .text((i+1) + ": " + w)
 
-                if w.guessed
-                    li.addClass("guessed")
-
-                if me.spy || w.guessed
-                    li.addClass(kind_to_class(w.kind))
-
-                #Make players selectable for the leader (to propose quest)
-                if game.state == GAME_VOTE && (game.currentTeam == me.team && not (me.spy) && not (w.guessed)) || (game.isCoop && game.currentTeam == TEAM_BLUE && me.spy && w.kind == WORD_BLUE && not(w.guessed))
-
-                    li.on 'click', (e) ->
-                        select_for_guess($(e.target))
-                    input = $("<input>").attr
-                        type    : 'hidden'
-                        word    : w.word
-                        value   : 0
-                    li.append(input)
-
-                $("#players").append(li)
+                $("#keywords").append(li)
 
             $("#clues").empty()
 
-            for c, index in game.clues.reverse()
-                guesses = $("<ul>")
-                    .attr("id", "guesses" + index)
-                    .addClass("list-group")
-                for g in c.guesses
-                    li = $("<li>")
-                        .addClass("list-group-item guessed")
-                        .text(g.word)
-                        .append($('<span>').text(g.player)
-                                           .addClass("pull-right " + team_to_class(c.team)))
-                    li.addClass(kind_to_class(g.kind))
+            #Draw the list of messages
+            # for m, index in game.messages.reverse()
+            #     guesses = $("<ul>")
+            #         .attr("id", "guesses" + index)
+            #         .addClass("list-group")
+            #     for g in c.guesses
+            #         li = $("<li>")
+            #             .addClass("list-group-item guessed")
+            #             .text(g.word)
+            #             .append($('<span>').text(g.player)
+            #                                .addClass("pull-right " + team_to_class(c.team)))
+            #         li.addClass(kind_to_class(g.kind))
 
-                    guesses.append(li)
+            #         guesses.append(li)
 
-                if c.numWords > 10
-                    c.numWords = "Infinite"
+            #     li = $("<li>")
+            #         .attr("id", index)
+            #         .addClass("list-group-item")
+            #         .text(c.word)
+            #         .prepend($('<span>').addClass("caret-right").html("&#9658"))
+            #         .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+            #         .append($('<span>').addClass("pull-right").text(c.numWords))
+            #         .append(guesses)
+            #     li.addClass(team_to_class(c.team))
+            #     li.on 'click', (e) ->
+            #         $("#guesses" + $(e.currentTarget).attr("id")).toggle()
+            #         $('.caret-right', $(e.currentTarget)).toggle()
+            #         $('.caret-down', $(e.currentTarget)).toggle()
 
-                li = $("<li>")
-                    .attr("id", index)
-                    .addClass("list-group-item")
-                    .text(c.word)
-                    .prepend($('<span>').addClass("caret-right").html("&#9658"))
-                    .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
-                    .append($('<span>').addClass("pull-right").text(c.numWords))
-                    .append(guesses)
-                li.addClass(team_to_class(c.team))
-                li.on 'click', (e) ->
-                    $("#guesses" + $(e.currentTarget).attr("id")).toggle()
-                    $('.caret-right', $(e.currentTarget)).toggle()
-                    $('.caret-down', $(e.currentTarget)).toggle()
-
-                $("#clues").append(li)
-                $("#guesses" + index).hide()
+            #     $("#clues").append(li)
+            #     $("#guesses" + index).hide()
 
             #Make quest proposal button visible to leader
             $("#teaminfo").show()
             $("#team_form").show()
 
-            if me.team == TEAM_RED
-                   teamstr = "Red"
-            else if me.team == TEAM_BLUE
-                   teamstr = "Blue"
+            teamstr = team_to_str me.team
 
             if me.spy
                 $("#team_form").hide()
-                $("#spy_form").show()
-                $("#btn_pass_turn").hide()
                 $("#form-give-clue").show()
             else
                 $("#form-give-clue").hide()
 
-            if game.state == GAME_CLUE && game.timeLimit > 0
+            if game.timeLimit > 0
                 $("#timeleft").show()
             else 
                 $("#timeleft").hide()
 
-            if (game.state == GAME_VOTE && game.currentTeam == me.team) 
-                if not (me.spy)
-                    $("#btn_select_guess").show()
-                    $("#btn_pass_turn").show()
-                    if game.guessesLeft > 10
-                        guessstr = "You have no guess limit."
-                     else
-                        guessstr = game.guessesLeft + " guesses left."
+            if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
+                state_team = game.state - GAME_DECRYPT_RED
+                state_teamstr = team_to_str state_team
+                if not me.spy
+                    select = ''
+                    for i in [1..game.options.num_words]
+                        select += '<option value=' + i + '>' + i + '</option>'
+                    $("#guess_code1").html(select)
+                    $('#guess_code1 option[value="0"]').attr("selected", "selected");
+                    $("#guess_code2").html(select)
+                    $('#guess_code2 option[value="0"]').attr("selected", "selected");
+                    $("#guess_code3").html(select)
+                    $('#guess_code3 option[value="0"]').attr("selected", "selected");
 
-                    $("#teaminfo").html("You are on team " + teamstr + ". Guess a word. " + guessstr)
+                    if m[state_team]["guess"+me.team].finished
+                        $("#btn_select_guess").hide()
+                        $("#guess_code").hide()
+                        $("#teaminfo").html("You are on team " + teamstr +
+                                               ". Waiting for the other team to guess the " +
+                                               state_teamstr + " code.")
+                    else
+                        $("#btn_select_guess").show()
+                        $("#guess_code").show()
+                        $("#teaminfo").html("You are on team " + teamstr + ". Try to guess the " +
+                                                state_teamstr + " code.")
                 else
                     $("#btn_give_clue").hide()
                     $("#clue_entry").hide()
-                    $("#clue_numwords").hide()
-                    $("#spyinfo").html("You are the " + teamstr + " leader. Waiting for team to guess.")
+                    if not m[state_team]["guess"+me.team].finished &&
+                       not m[state_team]["guess"+other_team me.team].finished
+                        $("#spyinfo").html("You are the " + teamstr +
+                                               " spy. Waiting for teams to guess the " +
+                                               state_teamstr + " code.")
+                    else if not m[state_team]["guess"+me.team].finished
+                        $("#spyinfo").html("You are the " + teamstr +
+                                               " spy. Waiting for your team to guess the " +
+                                               state_teamstr + " code.")
+                    else if not m[state_team]["guess"+other_team me.team].finished
+                        $("#spyinfo").html("You are the " + teamstr +
+                                               " spy. Waiting for their team to guess the " +
+                                               state_teamstr + " code.")
 
-            if (game.currentTeam != me.team)
-                if me.spy
-                    $("#btn_give_clue").hide()
-                    $("#clue_entry").hide()
-                    $("#clue_numwords").hide()
-                    if can_end_turn && game.timeLeft < 0 && game.timeLimit > 0
-                        $("#btn_force_end").show()
-                    $("#spyinfo").html("You are the " + teamstr + " leader. It is not your turn.")
-                else 
-                    $("#btn_select_guess").hide()
-                    $("#btn_pass_turn").hide()
-                    if me.team == TEAM_NONE
-                        $("#teaminfo").html("You are spectating.")
-                    else
-                        $("#teaminfo").html("You are on team " + teamstr + ". It is not your turn")
-           
-            if (game.state == GAME_VOTE && game.currentTeam == TEAM_BLUE && game.isCoop && me.spy)
-                    $("#team_form").show()
-                    $("#btn_select_guess").show()
-                    $("#btn_pass_turn").hide()
-                    $("#teaminfo").html("Red team turn is over. Pick a blue card to hide.")
-                    $("#spyinfo").html("")
-
-            if (game.state == GAME_CLUE && game.currentTeam == me.team)
+            if (game.state == GAME_ENCRYPT)
                 if me.spy
                     $("#btn_give_clue").show()
                     $("#clue_entry").show()
-                    $("#clue_numwords").show()
-
-                    remaining = 0
-                    for w in game.words
-                        if (w.kind == WORD_RED && me.team == TEAM_RED) || (w.kind == WORD_BLUE && me.team == TEAM_BLUE)
-                            if not w.guessed
-                                remaining += 1
- 
-                    select = '<option val=-1></option>'
-                    for i in [0..remaining]
-                        select += '<option value=' + i + '>' + i + '</option>'
-                    select += '<option value=100>Infinite</option>'
-
-                    $("#clue_numwords").html(select)
-                    $('#clue_numwords option[value="-1"]').attr("selected", "selected");
-                    $("#clue_entry").val("")
-                    $("#spyinfo").html("You are the " + teamstr + " leader. Enter a clue.")
+                    if not m[me.team].message.finished
+                        $("#spyinfo").html("You are the " + teamstr + " leader. Enter your clues.\n The code you are encrypting is " + game.current_code)
+                    else if not m[other_team me.team].message.finished
+                        $("#btn_give_clue").hide()
+                        $("#clue_entry").hide()
+                        $("#spyinfo").html("You are the " + teamstr +
+                                           " leader. Waiting for the other spy.")
                 else
                     $("#btn_select_guess").hide()
-                    $("#btn_pass_turn").hide()
-                    $("#teaminfo").html("You are on team " + teamstr + ". Waiting for a clue.")
+                    $("guess_code").hide()
+                    $("guess_code1").hide()
+                    $("guess_code2").hide()
+                    $("guess_code3").hide()
+                    $("#teaminfo").html("You are on team " + teamstr + ". Waiting for the clues.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -619,9 +548,6 @@ jQuery ->
             socket.emit('login', {name: $("#playername").val()})
             $("#signin").hide()
         e.preventDefault()
-
-    $("#btn_pass_turn").on 'click', () ->
-        socket.emit 'pass_turn'
     
     $("#btn_newgame").on 'click', () ->
         socket.emit 'newgame'
@@ -639,69 +565,67 @@ jQuery ->
         players = $("#gameinfo li")
         sorted = {}
         teams = {}
-        blue_team = 0
         red_team = 0
-        blue_spies = 0
-        red_spies = 0
+        blue_team = 0
         for p, i in players
             input = $("#" + p.id + " input")[0]
             player_id = $(input).attr("value")
-            spy = $(input).attr("spy") == "true"
             team = parseInt($(input).attr("team"),10)
             entry =
-                spy : spy
                 team : team
             if team == TEAM_RED
                 red_team += 1
-                if spy
-                    red_spies += 1
             else if team == TEAM_BLUE
                 blue_team +=1
-                if spy
-                    blue_spies += 1
             teams[player_id] = entry
-            sorted[player_id] = i
-        is_coop = (red_spies == 1) && red_team == players.length
+#            sorted[player_id] = i
+#FIXME        is_coop = (red_spies == 1) && red_team == players.length
+        is_coop = false
         options = {}
-        options['num_assassins'] = $("#opt_assassins").val()
-        options['time_limit'] = $("#opt_timelimit").val()
-        options['start_time_limit'] = $("#opt_starttimelimit").val()
+        options['num_words'] = $("#opt_num_words").val()
+        options['code_length'] = $("#opt_code_length").val()
+        options['encrypt_time_limit'] = $("#opt_encrypt_timelimit").val()
+        options['decrypt_time_limit'] = $("#opt_decrypt_timelimit").val()
         options['word_set'] = $("#opt_word_set").val()
         console.log('options', options)
 
-        if (red_spies == 1 && blue_spies == 1 && red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length)) || is_coop
-            socket.emit('startgame', {order: sorted, options: options, teams : teams, is_coop: is_coop})
+        if (red_team > 1 && blue_team > 1 && (red_team + blue_team == players.length))
+            socket.emit('startgame', {options: options, teams : teams, is_coop: is_coop})
         else
             return
     $("#form-give-clue").on 'submit', (e) ->
         e.preventDefault()
-        word = $("#clue_entry").val()
-        numWords = $("#clue_numwords").val()
-        console.log('numWords', numWords)
+        words = []
+        for i in [1..3]#game.options.code_length]
+            word = $("#clue_entry" + i).val()
+            words.push word
+            console.log(word)
+        console.log(words)
+        console.log(words.slice())
 
         clue =
-            word : word
-            numWords : numWords
+            clues : words.slice()
 
-        if word.length > 0 && numWords.length > 0
+        if words.length = 3 && words.every((x) -> x.length > 0)
             $("#clue_entry").hide()
-            $("#clue_numwords").hide()
             socket.emit('give_clue', clue)
         else
-            $("#spyinfo").html("You must give a valid clue!")
+            $("#spyinfo").html("You must give valid clues!")
 
     $("#form-select-guess").on 'submit', (e) ->
         e.preventDefault()
-        guess = undefined
-        sel = undefined
-        $("#players li").each () ->
-            input = $($(this).children(":input")[0])
-            if input.val() == '1'
-                guess = input.attr('word')
-                sel = $(this)
+        code = []
+        for i in [1..3]#game.options.code_length]
+            word = $("#guess_code" + i).val()
+            code.push word
+            console.log(word)
+        console.log(code)
 
-        if guess
-            sel.removeClass('active')
+        guess =
+            code : code.slice()
+
+        if code.length = 3 && code.every((x) -> x > 0)
+            $("#guess_code").hide()
             socket.emit('make_guess', guess)
         else
             $("#leaderinfo").html("You must make a guess!")
@@ -709,16 +633,6 @@ jQuery ->
     $("#btn_force_end").on 'click', (e) ->
         $("#btn_force_end").hide()
         socket.emit 'force_end'
-
-    $("#btn_submitvote").on 'click', (e) ->
-        radio = $("input[name=vote]:checked").val()
-        return if radio != "approve" && radio != "reject"
-        vote = (radio == "approve")
-        $("input[name=vote]:checked").prop('checked', false)
-        $("#vote .btn").each () ->
-            $(this).removeClass("active")
-        $("#vote").hide()
-        socket.emit('vote', vote)
 
     $("#btn_quit").on 'click', (e) ->
         $("#game").hide()
@@ -761,8 +675,6 @@ kind_to_class = (kind) ->
             "blueteam"
         else if kind == WORD_GREY
             "noteam"
-        else if kind == WORD_BLACK
-            "blackteam"
 
 team_to_class = (team) ->
         kind_to_class(team)

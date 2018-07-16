@@ -1,4 +1,4 @@
-db_url = "mongodb://127.0.0.1/codewords"
+db_url = "mongodb://127.0.0.1/decryptio"
 mongoose = require('mongoose')
 bcrypt = require('bcrypt')
 
@@ -10,22 +10,28 @@ db = mongoose.connect(db_url)
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
-GAME_CLUE          = 2
-GAME_VOTE          = 3
+GAME_ENCRYPT       = 2
+GAME_DECRYPT_RED   = 3
+GAME_DECRYPT_BLUE  = 4
 GAME_FINISHED      = 9
 
-TEAM_RED           = 1
-TEAM_BLUE          = 2
-TEAM_NONE          = 3
-
-WORD_RED           = 1
-WORD_BLUE          = 2
-WORD_GREY          = 3
-WORD_BLACK         = 4
+TEAM_RED           = 0
+TEAM_BLUE          = 1
+TEAM_NONE          = 2
+TEAMS              = [TEAM_RED, TEAM_BLUE]
 
 DEFAULT_WORDS      = 0
 DUET_WORDS         = 1
 ALL_WORDS          = 2
+
+other_team = (team) ->
+    if team == TEAM_RED
+        return TEAM_BLUE
+    else if team == TEAM_BLUE
+        return TEAM_RED
+    else
+        console.log('No other team:', team)
+        return TEAM_NONE
 
 ObjectId = mongoose.Schema.Types.ObjectId
 
@@ -76,58 +82,52 @@ playerSchema.methods.leave_game = (cb) ->
 
 Player = mongoose.model('Player', playerSchema)
 
+messageSchema = new mongoose.Schema
+    spy : ObjectId
+    message : {clues: [String], finished: Boolean}
+#Guesses contains both teames guesses for the code.
+    guess0 : {code: [Number], finished: Boolean}
+    guess1 : {code: [Number], finished: Boolean}
+
+#Many fields are indexed by hardcoded team id's.
 gameSchema = new mongoose.Schema
     state       : {type: Number, default: GAME_LOBBY}
     gameOptions : {
-        num_assassins  : {type: Number, default: 1}
-        time_limit     : {type: Number, default: 0}
-        start_time_limit : {type: Number, default: 0}
-        word_set       : {type: Number, default: 0}
+        num_words  : {type: Number, default: 4}
+        code_length  : {type: Number, default: 3}
+        encrypt_time_limit : {type: Number, default: 0}
+        decrypt_time_limit : {type: Number, default: 0}
+        word_set       : {type: Number, default: ALL_WORDS}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
         name     : String
         socket   : String
         order    : Number
-        spy      : Boolean
         team     : Number
         left     : {type: Boolean, default: false}
-        info     : [
-            otherPlayer : String
-            information : String
-        ]
     ]
-    clues           : [
-        team        : Number
-        word        : String
-        numWords    : Number
-        guesses     : [
-            word   : String
-            player : String
-            kind   : Number
-        ]
-    ]
-    words           : [
-        word        : String
-        kind        : Number
-        guessed     : Boolean
-    ]
-        
-    votes        : [
-        word     : String
-        accepted : [ObjectId]
-        rejected : [ObjectId]
-        votes    : [
-            id      : ObjectId
-            vote    : Boolean
-        ]
-    ]
-    currentTeam     : Number
-    guessesLeft     : Number
+    codes0 : [[Number]]
+    codes1 : [[Number]]
+    messages0 : [messageSchema]
+    messages1 : [messageSchema]
+    score : {
+        0 :
+            intercepts        : {type: Number, default: 0}
+            miscommunications : {type: Number, default: 0}
+        1 :
+            intercepts        : {type: Number, default: 0}
+            miscommunications : {type: Number, default: 0}
+    }
+
+    round           : {type: Number, default: 0}
     roundStart      : Date
     timeLimit       : Number
-    winningTeam     : Number
-    isCoop          : Boolean
+    currentSpy      : {0: ObjectId, 1: ObjectId}
+    teamLength      : {0: Number, 1: Number}
+    keywords        : {0: [String], 1: [String]}
+    winningTeam     : {type: Number, default: TEAM_NONE}
+    isCoop          : {type: Boolean, default: false}
     reconnect_vote  : [Number]
     reconnect_user  : String
     reconnect_sock  : String
@@ -146,9 +146,7 @@ gameSchema.methods.add_player = (p) ->
         id  : p._id
         name : p.name
         socket : p.socket
-        spy : undefined
         team : TEAM_NONE
-        info : []
    
     return true
 
@@ -171,102 +169,132 @@ gameSchema.methods.setup_words = () ->
         words = shuffle(duetWords)
     else
         words = shuffle(globalWords.concat duetWords)
-    start_assassins = 25 - this.gameOptions.num_assassins
 
-    for i in [0..8]
-        this.words.push
-            word : words[i]
-            kind : WORD_RED
-            guessed : false
-    for i in [9..16]
-        this.words.push
-            word : words[i]
-            kind : WORD_BLUE
-            guessed : false
-    if 17 < start_assassins
-        for i in [17...start_assassins]
-            this.words.push
-                word : words[i]
-                kind : WORD_GREY
-                guessed : false
-    if start_assassins < 25
-        for i in [start_assassins..24]
-            this.words.push
-                word : words[i]
-                kind : WORD_BLACK
-                guessed : false
-    dosort = (a,b) ->
-        if a.word < b.word
-            return -1
-        else if a.word > b.word
-            return 1
-        else return 0
-    this.words.sort(dosort)
+    num_words = this.gameOptions.num_words
+    for i in TEAMS
+        this.keywords[i] = []
+        for j in [0..num_words - 1]
+            this.keywords[i].push words[i * num_words + j]
 
-gameSchema.methods.other_team = () ->
-    if this.currentTeam == TEAM_RED
-        return TEAM_BLUE
-    else if this.currentTeam == TEAM_BLUE
-        return TEAM_RED
-    else
-        console.log('No other team:', team)
-        return TEAM_NONE
+gameSchema.methods.set_next_spies = () ->
+    next = [-1, -1]
+    for p in this.players
+        if p.id.equals(this.currentSpy[p.team])
+            next[p.team] = (p.order + 1) % this.teamLength[p.team]
 
+    for p in this.players
+        if p.order == next[p.team]
+            this.currentSpy[p.team] = p.id
 
-gameSchema.methods.next_turn = () ->
-    this.currentTeam = this.other_team()
-    this.timeLimit = this.gameOptions.time_limit
-    this.roundStart = Date.now()
-    this.state = GAME_CLUE
-    if this.currentTeam == TEAM_BLUE && this.isCoop
-        this.state = GAME_VOTE
-
+gameSchema.methods.create_next_message = () ->
+    for i in TEAMS
+        code = shuffle([1..this.gameOptions.num_words])[..this.gameOptions.code_length - 1]
+        this["messages"+i].push
+            spy      : this.currentSpy[i]
+            message  : {clues: [], finished: false}
+            guess0   : {code: [], finished: false}
+            guess1   : {code: [], finished: false}
+        this["codes"+i].push code
+        console.log(JSON.stringify(this["messages"+i],null,4))
+        console.log(this["codes"+i])
+    this.round++
 
 gameSchema.methods.check_for_game_end = () ->
-    red = ((if w.kind == WORD_RED and w.guessed then 1 else 0) for w in this.words)
-    red = red.sum()
-    blue = ((if w.kind == WORD_BLUE and w.guessed then 1 else 0) for w in this.words) 
-    blue = blue.sum()
-    black = ((if w.kind == WORD_BLACK and w.guessed then 1 else 0) for w in this.words)
-    black = black.sum()
+    red_int = this.score[TEAM_RED].intercepts
+    red_miss = this.score[TEAM_RED].miscommunications
+    blue_int = this.score[TEAM_BLUE].intercepts
+    blue_miss = this.score[TEAM_BLUE].miscommunications
+    red_win = red_int >= 2 || blue_miss >= 2
+    blue_win = blue_int >= 2 || red_miss >= 2
 
-    if red == 9
+    if red_win and blue_win
+        this.winningTeam =
+            if red_int - red_miss > blue_int - blue_miss
+            then TEAM_RED else if red_int - red_miss < blue_int - blue_miss
+            then TEAM_BLUE else TEAM_NONE
+    else if red_win
         this.winningTeam = TEAM_RED
-    else if blue == 8
+    else if blue_win
         this.winningTeam = TEAM_BLUE
-    else if black == 1
-        if this.currentTeam == TEAM_RED
-            this.winningTeam = TEAM_BLUE
-        else if this.currentTeam == TEAM_BLUE
-            this.winningTeam = TEAM_RED
 
-    if not (this.winningTeam == 0)
+    if red_win || blue_win
         this.state = GAME_FINISHED
-
-    return
 
 gameSchema.methods.time_left = ->
     round_time = Math.floor ((Date.now() - this.roundStart) / 1000)
     time_left = this.timeLimit - round_time
     return time_left
 
-gameSchema.methods.start_game = (order, teams, is_coop) ->
-    this.state = GAME_CLUE
-    this.currentTeam = TEAM_RED
-    this.guessesLeft = 0
-    this.winningTeam = 0
+gameSchema.methods.reset_timer = (time_limit) ->
+    this.timeLimit = time_limit
     this.roundStart = Date.now()
-    this.timeLimit = this.gameOptions.start_time_limit
+
+gameSchema.methods.start_game = (teams, is_coop) ->
+    this.state = GAME_ENCRYPT
+    this.round = 0
+    this.timeLimit = 0
+    order = [0,0]
 
     for p in this.players
-        p.spy = teams[p.id].spy
         p.team = teams[p.id].team
-        p.order = order[p.id]
+        p.order = order[p.team]
+        order[p.team] += 1
+    for i in TEAMS
+        this.teamLength[i] = order[i]
     
     #Sort by order
-    this.players.sort((a, b) -> a.order - b.order)
+    this.players.sort((a, b) -> a.team - b.team or a.order - b.order)
+
+    spy = []
+    for i in TEAMS
+        spy[i] = Math.floor Math.random() * this.teamLength[i]
+    for p in this.players
+        if p.order == spy[p.team]
+           this.currentSpy[p.team] = p.id
+           
     this.isCoop = is_coop
     this.setup_words()
+    this.create_next_message()
+
+gameSchema.methods.make_guess = (state_team, code, p_team) ->
+    console.log(code)
+    round = this.round - 1
+    m = this["messages"+state_team][round]
+    m["guess"+p_team].code = deep_copy(code)
+    m["guess"+p_team].finished = true
+    console.log(m)
+
+    if m["guess"+other_team p_team].finished
+        code = this["codes"+state_team][round]
+        if not arraysEqual(m["guess"+state_team].code, code)
+            this.score[state_team].miscommunications += 1
+        if arraysEqual(m["guess"+other_team state_team].code, code)
+            this.score[state_team].intercepts += 1
+        return true
+    else
+        this.reset_timer(this.gameOptions.decrypt_time_limit)
+        return false
 
 Game = mongoose.model('Game', gameSchema)
 
+deep_copy = (o) ->
+    output = if Array.isArray(o) then [] else {}
+    for key, v of o
+        output[key] = if typeof v == "object" && v != null then deep_copy(v) else v
+    return output
+
+returnInt = (n) -> parseInt(n, 10)
+
+isArray = Array.isArray || (subject) ->
+    toString.call(subject) is '[object Array]'
+
+arraysEqual = (a, b) ->
+    unless isArray(a) and isArray b
+        throw new Error '`arraysAreEqual` called with non-array'
+
+    return false if a.length isnt b.length
+
+    for valueInA, index in a
+        return false if b[index] isnt valueInA
+
+    true

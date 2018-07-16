@@ -1,8 +1,8 @@
 {
-  "name": "socket-avalon",
+  "name": "decryptio",
   "version": "1.0.0",
-  "description": "Websocket implementation of Couchalon",
-  "main": "codewords.js",
+  "description": "Websocket implementation of Decrypto",
+  "main": "decryptio.js",
   "dependencies": {
     "bcrypt": "^0.8.5",
     "express": "^4.13.3",

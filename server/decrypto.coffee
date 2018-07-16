@@ -7,7 +7,13 @@ Q = require('q')
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 4
+zip = () ->
+  lengthArray = (arr.length for arr in arguments)
+  length = Math.min(lengthArray...)
+  for i in [0...length]
+    arr[i] for arr in arguments
+
+VERSION = 1
 
 
 send_game_list = () ->
@@ -32,12 +38,11 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
     data =
         state           : game.state
         options         : game.gameOptions
-        id              : game.id
-        currentTeam     : game.currentTeam
-        guessesLeft     : game.guessesLeft
+        score           : game.score
+        round           : game.round
         timeLimit       : game.timeLimit
+        currentSpy      : [ObjectId]
         timeLeft        : game.time_left()
-        clues           : game.clues
         isCoop          : game.isCoop
         reconnect_user  : game.reconnect_user
         reconnect_vote  : game.reconnect_vote
@@ -56,37 +61,75 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
             id          : p.id
             name        : p.name
             order       : p.order
-            spy         : p.spy
+            spy         : p.id.equals(game.currentSpy[p.team])
             team        : p.team
 
     data.players = players
 
-    #Hide unfinished votes
-    words = []
-    words_secret = []
-    for w in game.words
-        dw = {word: w.word, guessed: w.guessed, kind: undefined}
-        words.push dw
-        dw.kind = w.kind
-        words_secret.push dw
+    #Hide unfinished messages
+    messages = []
+    for [m_red, m_blue] in zip(game.messages0, game.messages1)
+        # dm =
+        #     {0:
+        #         spy     : m_red.spy
+        #         message :
+        #             clues    : m_red.message
+        #             finished : m_red.message.length > 0
+        #         guesses : [
+        #             {code     : m_red.guess0
+        #              finished : m_red.guess0.length > 0},
+        #             {code     : m_red.guess1
+        #              finished : m_red.guess1.length > 0}
+        #         ]
+        #      1:
+        #         spy     : m_blue.spy
+        #         message :
+        #             clues    : m_blue.message
+        #             finished : m_blue.message.length > 0
+        #         guesses : [
+        #             {code     : m_blue.guess0
+        #              finished : m_blue.guess0.length > 0},
+        #             {code     : m_blue.guess1
+        #              finished : m_blue.guess1.length > 0}
+        #         ]
+        #     }
+        dm = {0: JSON.parse(JSON.stringify(m_red)), 1: JSON.parse(JSON.stringify(m_blue))}
+        if not dm[TEAM_RED].message.finished || not dm[TEAM_BLUE].message.finished
+            for i in TEAMS
+                dm[i].message.clues = []
+        for i in TEAMS
+            if not dm[i]["guess"+TEAM_RED].finished || not dm[i]["guess"+TEAM_BLUE].finished
+                for j in TEAMS
+                    dm[i]["guess"+j].code = []
+        messages.push dm
+    data.messages = messages
+
+    #Hide current codes
+    codes = zip(game.codes0, game.codes1)
+    codes.pop()
+    data.codes = codes
 
     #Add in secret info specific to player as we go
     for s in socks
         i = s.player
-        data.players[i].info = game.players[i].info
         data.me = data.players[i]
-        if i.spy
-            data.words = words_secret
-        else
-            data.words = words
+
+        team = data.players[i].team
+        round = game.round - 1
+        if team in TEAMS && round >= 0
+            if data.me.spy
+                data.current_code = game["codes"+team][round]
+            else
+                data.current_code = []
+            data.keywords = game.keywords[team]
         if s.socket
-            timeinfo = 
+            timeinfo =
                 timeleft : data.timeLeft
 
             s.socket.emit('timeleft', timeinfo)
             s.socket.emit(tagged, data)
-        data.words = []
-        data.players[i].info = []
+        data.code = []
+        data.keywords = []
 
 
 #
@@ -373,7 +416,7 @@ io.on 'connection', (socket) ->
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
             if game.players[0].socket == socket.id
-                if game.players.length >= 2
+                if game.players.length >= 3
                     game.state = GAME_PREGAME
 
             game.save()
@@ -407,30 +450,7 @@ io.on 'connection', (socket) ->
 
             socket.emit('timeleft', timeinfo)
 
-    socket.on 'force_end', () ->
-        player = socket.player
-        return if not player
 
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-
-            time_left = game.time_left()
-
-            if time_left > 0 || game.state != GAME_CLUE
-                return
-            else
-                game.clues.push
-                    word : "<Turn Timeout>"
-                    numWords : 100
-                    team : game.currentTeam
-
-                game.guessesLeft = 100
-                game.state = GAME_VOTE
-                game.save()
-                send_game_info(game)
-                  
-
-   
     socket.on 'teaminfo', (data) ->
         player = socket.player
         return if not player
@@ -440,7 +460,6 @@ io.on 'connection', (socket) ->
 
             for p in game.players
                 p.team = data[p.id].team
-                p.spy = data[p.id].spy
 
             game.save()
             send_game_info(game, undefined, 'teaminfo')
@@ -451,32 +470,17 @@ io.on 'connection', (socket) ->
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
-            order = data.order
             teams = data.teams
             is_coop = data.is_coop 
-            game.gameOptions.num_assassins = data.options.num_assassins
-            game.gameOptions.time_limit = data.options.time_limit
-            game.gameOptions.start_time_limit = data.options.start_time_limit
+            game.gameOptions.num_words = data.options.num_words
+            game.gameOptions.code_length = data.options.code_length
+            game.gameOptions.encrypt_time_limit = data.options.encrypt_time_limit
+            game.gameOptions.decrypt_time_limit = data.options.decrypt_time_limit
             game.gameOptions.word_set = data.options.word_set
 
-            #Sanity check
-            return if Object.keys(order).length != game.players.length
-            game.start_game(order, teams, is_coop)
-            game.save()
-            send_game_info(game)
-
-    socket.on 'pass_turn', (data) ->
-        player = socket.player
-        return if not player
-        Game.findById player.currentGame, (err, game) ->
-            return if err || not game
-
-            p = game.get_player(player._id)
-            if game.state != GAME_VOTE || p.team != game.currentTeam
-                return
-
-            game.next_turn()
-            game.save()
+            game.start_game(teams, is_coop)
+            game.save((err) =>
+                if err then console.log(err))
             send_game_info(game)
 
     socket.on 'give_clue', (data) ->
@@ -486,23 +490,50 @@ io.on 'connection', (socket) ->
             return if err || not game
 
             p = game.get_player(player._id)
-            if game.state != GAME_CLUE || p.team != game.currentTeam
+            team = p.team
+            round = game.round - 1
+            m = game["messages"+team][round]
+            other_m = game["messages"+other_team team][round]
+            if game.state != GAME_ENCRYPT || not p.id.equals(game.currentSpy[team]) ||
+                                             m.message.finished
+                return
+            for clue in data.clues
+                m.message.clues.push clue
+            m.message.finished = true
+
+            if other_m.message.finished
+                game.state = GAME_DECRYPT_RED
+                game.timeLimit = 0
+            else
+                game.reset_timer(game.gameOptions.encrypt_time_limit)
+
+            game.save((err) =>
+                if err then console.log(err))
+            send_game_info(game)
+
+
+    socket.on 'force_end_encrypt', () ->
+        player = socket.player
+        return if not player
+
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            time_left = game.time_left()
+            p = game.get_player(player._id)
+            team = p.team
+            round = game.round - 1
+            m = game["messages"+team][round]
+            other_m = game["messages"+other_team team][round]
+            if time_left > 0 || game.state != GAME_ENCRYPT || not m.message.finished
+                                other_m.message.finished
                 return
 
-            game.clues.push
-                word : data.word
-                numWords : data.numWords
-                team : game.currentTeam
-                guesses : []
+            other_m.message.clues = Array(game.gameOptions.code_length).fill("<Turn Timeout>")
+            other_m.message.finished = true
 
-            game.guessesLeft = data.numWords
-            game.guessesLeft += 1
-
-            if game.guessesLeft == 1
-                game.guessesLeft = 100
-
-            game.state = GAME_VOTE
-
+            game.state = GAME_DECRYPT_RED
+            game.timeLimit = 0
             game.save()
             send_game_info(game)
 
@@ -513,38 +544,69 @@ io.on 'connection', (socket) ->
             return if err || not game
 
             p = game.get_player(player._id)
-            if game.state != GAME_VOTE ||
-               (p.team != game.currentTeam && not game.isCoop)
+            round = game.round - 1
+            red_m = game["messages"+TEAM_RED][round]
+            blue_m = game["messages"+TEAM_BLUE][round]
+            code = data.code.map(returnInt)
+
+            if game.state == GAME_DECRYPT_RED && not p.id.equals(game.currentSpy[TEAM_RED]) &&
+                      not red_m["guess"+p.team].finished
+                both_finished = game.make_guess(TEAM_RED, code, p.team)
+                if both_finished
+                    if game.isCoop
+                        return #FIXME
+                    else
+                        game.state = GAME_DECRYPT_BLUE
+                        game.timeLimit = 0
+            else if game.state == GAME_DECRYPT_BLUE && not p.id.equals(game.currentSpy[TEAM_BLUE]) &&
+                      not blue_m["guess"+p.team].finished
+                both_finished = game.make_guess(TEAM_BLUE, code, p.team)
+                if both_finished
+                    game.state = GAME_ENCRYPT
+                    game.timeLimit = 0
+                    game.set_next_spies()
+                    game.create_next_message()
+                    game.check_for_game_end()
+            else
                 return
 
-            currClue = game.clues[game.clues.length - 1]
-            for w in game.words
-                if w.word == data
-                    if w.guessed
-                        return
-                    w.guessed = true
-                    kind = w.kind
-                    currClue.guesses.push
-                        word   : data
-                        player : player.name
-                        kind   : kind
+            game.save((err) =>
+                if err then console.log(err))
+            send_game_info(game)
 
-            game.guessesLeft -= 1
-            switch_teams = false
+    socket.on 'force_end_decrypt', () ->
+        player = socket.player
+        return if not player
 
-            if kind == WORD_RED && game.currentTeam != TEAM_RED
-                switch_teams = true
-            else if kind == WORD_BLUE && game.currentTeam != TEAM_BLUE
-                switch_teams = true
-            else if game.isCoop && kind == WORD_BLUE && game.currentTeam == TEAM_BLUE
-                switch_teams = true
-            else if kind == WORD_GREY || game.guessesLeft < 1
-                switch_teams = true
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
 
-            if switch_teams
-                game.next_turn()
+            if game.time_left() > 0 || game.isCoop
+                return
+            p = game.get_player(player._id)
+            round = game.round - 1
+            red_m = game["messages"+TEAM_RED][round]
+            blue_m = game["messages"+TEAM_BLUE][round]
+            code = Array(game.gameOptions.code_length).fill(0)
 
-            game.check_for_game_end()
+            if game.state == GAME_DECRYPT_RED && red_m["guess"+p.team].finished
+                      not red_m["guess"+other_team p.team].finished
+                both_finished = game.make_guess(TEAM_RED, code, other_team p.team)
+                if both_finished
+                    game.state = GAME_DECRYPT_BLUE
+                    game.timeLimit = 0
+            else if game.state == GAME_DECRYPT_BLUE && blue_m["guess"+p.team].finished
+                      not blue_m["guess"+other_team p.team].finished
+                both_finished = game.make_guess(TEAM_BLUE, code, other_team p.team)
+                if both_finished
+                    game.state = GAME_ENCRYPT
+                    game.timeLimit = 0
+                    game.set_next_spies()
+                    game.create_next_message()
+                    game.check_for_game_end()
+            else
+                return
+
             game.save()
             send_game_info(game)
 

@@ -13,7 +13,7 @@
         <link rel="stylesheet" href="bootstrap-theme.min.css">
         <link rel="stylesheet" href="client.css">
         <script src="bootstrap.min.js"></script>
-        <title>Codewords</title>
+        <title>Decryptio</title>
     </head>
 
     <body>
@@ -37,7 +37,7 @@
         </div>
 
         <div id="login">
-            <h2 style="text-align: center">Codewords</h2>
+            <h2 style="text-align: center">Decryptio</h2>
             <p style="text-align:center">Are you trying to reconnect to a game?</p>
             <ul class="list-group" id="reconnectlist"></ul>
             <br />
@@ -46,7 +46,7 @@
         </div>
 
         <div id="lobby">
-            <h2 style="text-align: center">Codewords</h2>
+            <h2 style="text-align: center">Decryptio</h2>
             <div>
                 <h3 id="newgameheader" style="text-align: center">New Games</h3>
                 <ul class="list-group" id="newgamelist"></ul>
@@ -63,7 +63,7 @@
         </div>
 
         <div id="pregame">
-            <h2 style="text-align: center">Codewords</h2>
+            <h2 style="text-align: center">Decryptio</h2>
             <ul class="list-group" id="gameinfo"></ul>
             <button class="btn btn-lg btn-primary btn-block" id="btn_ready">Start Game</button>
             <button class="btn btn-lg btn-danger btn-block" id="btn_leavelobby">Leave Game</button>
@@ -73,28 +73,30 @@
                     <div class="panel-title">Options</div>
                 </div>
                 <ul class="list-group options-list">
-                    <li class="list-group-item">Number of Assassins
-                        <select id="opt_assassins" style="float:right;">
+                    <li class="list-group-item">Encryption Time Limit
+                        <select id="opt_encrypt_timelimit" style="float:right;">
                         </select>
-                   </li>
-                    <li class="list-group-item">Time Limit
-                        <select id="opt_timelimit" style="float:right;">
+                    </li>
+                    <li class="list-group-item">Decryption Time Limit
+                        <select id="opt_decrypt_timelimit" style="float:right;">
                         </select>
-                   </li>
-                   <li class="list-group-item">Starting Time Limit
-                        <select id="opt_starttimelimit" style="float:right;">
+                    </li>
+                    <li class="list-group-item">Number of Keywords
+                        <select id="opt_num_words" style="float:right;">
                         </select>
-                   </li>
-                   <li class="list-group-item">Word Set Used
+                    </li>
+                    <li class="list-group-item">Length of Codes
+                        <select id="opt_code_length" style="float:right;">
+                        </select>
+                    </li>
+                    <li class="list-group-item">Word Set Used
                         <select id="opt_word_set" style="float:right;">
                         </select>
-                   </li>
-                   
+                    </li>   
                 </ul>
             </div>
 
             <button class="btn btn-lg btn-info btn-block" id="btn_randomize_teams">Randomize Teams</button>
-            <button class="btn btn-lg btn-info btn-block" id="btn_randomize_spies">Randomize Spies</button>
             <button class="btn btn-lg btn-primary btn-block" id="btn_start_game">Start Game</button>
 
             <p id="waitforhost">
@@ -105,61 +107,45 @@
         </div>
 
         <div id="game">
-
-            <div class="panel panel-default panel-popup" id="vote">
-                <!--<div class="panel-heading">
-                    <div class="panel-title">Vote</div>
-                </div>-->
-                <br />
-                <div class="btn-group" data-toggle="buttons">
-                    <label class="btn btn-approve">
-                        <input type="radio" name="vote" value="approve"><span class="btnicon"><img class="icon" src="tick.png" /></span> Approve
-                    </label>
-                    <label class="btn btn-reject">
-                        <input type="radio" name="vote" value="reject">Reject <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
-                    </label>
-                </div>
-                <br />
-                <br />
-                <button class="btn btn-primary btn-block btn-panel" id="btn_submitvote">Submit</button>
-                <br />
+            <div id="results">
+                <span class="pull-left redteam" id="red_results"></span>
+                <span class="pull-right blueteam" id="blue_results"></span>
             </div>
-
-            <div class="panel panel-default panel-popup" id="quest">
-                <!--<div class="panel-heading">
-                    <div class="panel-title">Quest</div>
-                </div>-->
-                <br />
-                <div class="btn-group" data-toggle="buttons">
-                    <label class="btn btn-success">
-                        <input type="radio" name="quest" value="success"><span class="btnicon"><img class="icon" src="tick-wh.png" /></span> Success
-                    </label>
-                    <label class="btn btn-danger">
-                        <input type="radio" name="quest" value="fail">Fail <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
-                    </label>
-                </div>
-                <br />
-                <br />
-                <button class="btn btn-primary btn-block btn-panel" id="btn_submitquest">Submit</button>
-                <br />
-            </div>
-
+            <br />
             <form id="form-select-guess">
-                <ul class="list-group" id="players"></ul>
+                <ul class="list-group" id="keywords"></ul>
                 <ul class="list-group" id="clues"></ul>
                 <div id="timeleft"></div>
-                <div id="team_form">  
+                <div id="team_form">
                     <div id="teaminfo"></div>
-                    <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Word</button>
+                    <div id="guess_code">
+                        <div>
+                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code3"></select>
+                        </div>
+                        <div>
+                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code2"></select>
+                        </div>
+                        <div>
+                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code1"></select>
+                        </div>
+                    </div>
+                    <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Code</button>
                 </div>
             </form>
             
             <form id="form-give-clue">
                 <div id="spyinfo"></div>
-                     <div>
-                             <input type="text" id="clue_entry" class="form-control" style="width:70%;display: inline-block;" maxlength="24" placeholder="Clue" autofocus></input>
-                             <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="clue_numwords"></select>
-                     </div>
+                <div id="clue_entry">
+                    <div>
+                        <input type="text" id="clue_entry1" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 1" autofocus></input>
+                    </div>
+                    <div>
+                        <input type="text" id="clue_entry2" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 2" autofocus></input>
+                    </div>
+                    <div>
+                        <input type="text" id="clue_entry3" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 3" autofocus></input>
+                    </div>
+                </div>
                 
                 <br />
                 <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
@@ -168,9 +154,6 @@
 
             <br />
             <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">Force End Turn</button>
-
-            <br />
-            <button class="btn btn-lg btn-block btn-info" id="btn_pass_turn">Pass Turn</button>
 
             <br />
             <button class="btn btn-lg btn-danger btn-block" id="btn_quit">Quit Game</button>

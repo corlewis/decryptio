@@ -1,5 +1,5 @@
-SERVERSRC = server/words.coffee server/db.coffee server/config.coffee server/server.coffee server/codewords.coffee
-SERVER = codewords.js
+SERVERSRC = server/words.coffee server/db.coffee server/config.coffee server/server.coffee server/decrypto.coffee
+SERVER = decryptio.js
 
 CLIENTSRC = server/config.coffee client/client.coffee
 CLIENT = js/client.js
