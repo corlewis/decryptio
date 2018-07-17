@@ -422,41 +422,51 @@ jQuery ->
             $("#clues").empty()
 
             #Draw the list of messages
-            # for m, index in game.messages.reverse()
-            #     guesses = $("<ul>")
-            #         .attr("id", "guesses" + index)
-            #         .addClass("list-group")
-            #     for g in c.guesses
-            #         li = $("<li>")
-            #             .addClass("list-group-item guessed")
-            #             .text(g.word)
-            #             .append($('<span>').text(g.player)
-            #                                .addClass("pull-right " + team_to_class(c.team)))
-            #         li.addClass(kind_to_class(g.kind))
+            for list_m, round_index in game.messages.slice().reverse()
+                round = game.messages.length - round_index
+                codes = game.codes[round - 1]
+                for i in TEAMS.slice().reverse()
+                    if list_m[i].message.finished && list_m[other_team i].message.finished
+                        clues = $("<ul>")
+                            .attr("id", "clues" + round + i)
+                            .addClass("list-group clues")
+                        for clue, clue_index in list_m[i].message.clues
+                            li = $("<li>")
+                                .addClass("list-group-item")
+                                .text(clue_index + 1 + ": " + clue)
+                            if list_m[i].guess0.finished && list_m[i].guess1.finished
+                                li.append($('<span>')
+                                  .text(codes[i][clue_index])
+                                  .addClass("pull-right " + team_to_class(i)))
+                                li.append($('<span>').append("&nbsp;|&nbsp;")
+                                  .addClass("pull-right").css('color', 'black'))
+                                li.append($('<span>')
+                                  .text(list_m[i].guess1.code[clue_index])
+                                  .addClass("pull-right " + team_to_class(TEAM_BLUE)))
+                                li.append($('<span>').append("&nbsp;|&nbsp;")
+                                  .addClass("pull-right").css('color', 'black'))
+                                li.append($('<span>')
+                                  .text(list_m[i].guess0.code[clue_index])
+                                  .addClass("pull-right " + team_to_class(TEAM_RED)))
+                            clues.append(li)
 
-            #         guesses.append(li)
+                        li = $("<li>")
+                            .addClass("list-group-item")
+                            .text("Round " + round + ": " + list_m[i].spy)
+                            .prepend($('<span>').addClass("caret-right").html("&#9658"))
+                            .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+                            .append(clues.hide())
+                        li.addClass(team_to_class(i))
+                        li.on 'click', (e) ->
+                            $('.clues', $(e.currentTarget)).toggle()
+                            $('.caret-right', $(e.currentTarget)).toggle()
+                            $('.caret-down', $(e.currentTarget)).toggle()
 
-            #     li = $("<li>")
-            #         .attr("id", index)
-            #         .addClass("list-group-item")
-            #         .text(c.word)
-            #         .prepend($('<span>').addClass("caret-right").html("&#9658"))
-            #         .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
-            #         .append($('<span>').addClass("pull-right").text(c.numWords))
-            #         .append(guesses)
-            #     li.addClass(team_to_class(c.team))
-            #     li.on 'click', (e) ->
-            #         $("#guesses" + $(e.currentTarget).attr("id")).toggle()
-            #         $('.caret-right', $(e.currentTarget)).toggle()
-            #         $('.caret-down', $(e.currentTarget)).toggle()
-
-            #     $("#clues").append(li)
-            #     $("#guesses" + index).hide()
+                        $("#clues").append(li)
 
             #Make quest proposal button visible to leader
             $("#teaminfo").show()
             $("#team_form").show()
-
             teamstr = team_to_str me.team
 
             if me.spy
@@ -473,6 +483,9 @@ jQuery ->
             if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
+                $("#clues0" + state_team).show()
+                $('.caret-right', "#0" + state_team).hide()
+                $('.caret-down', "#0" + state_team).show()
                 if not me.spy
                     select = ''
                     for i in [1..game.options.num_words]
@@ -599,9 +612,6 @@ jQuery ->
         for i in [1..3]#game.options.code_length]
             word = $("#clue_entry" + i).val()
             words.push word
-            console.log(word)
-        console.log(words)
-        console.log(words.slice())
 
         clue =
             clues : words.slice()
@@ -618,14 +628,16 @@ jQuery ->
         for i in [1..3]#game.options.code_length]
             word = $("#guess_code" + i).val()
             code.push word
-            console.log(word)
-        console.log(code)
 
         guess =
             code : code.slice()
 
         if code.length = 3 && code.every((x) -> x > 0)
             $("#guess_code").hide()
+            $("guess_code1").hide()
+            $("guess_code2").hide()
+            $("guess_code3").hide()
+
             socket.emit('make_guess', guess)
         else
             $("#leaderinfo").html("You must make a guess!")
@@ -669,11 +681,11 @@ select_for_guess = (li) ->
         input.attr(value: 1)
 
 kind_to_class = (kind) ->
-        if kind == WORD_RED
+        if kind == TEAM_RED
             "redteam"
-        else if kind == WORD_BLUE
+        else if kind == TEAM_BLUE
             "blueteam"
-        else if kind == WORD_GREY
+        else if kind == TEAM_NONE
             "noteam"
 
 team_to_class = (team) ->

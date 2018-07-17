@@ -111,10 +111,11 @@
                 <span class="pull-left redteam" id="red_results"></span>
                 <span class="pull-right blueteam" id="blue_results"></span>
             </div>
-            <br />
+            <br/>
+            <ul class="list-group" id="keywords"></ul>
             <form id="form-select-guess">
-                <ul class="list-group" id="keywords"></ul>
                 <ul class="list-group" id="clues"></ul>
+                <ul class="list-group" id="used_clues"></ul>
                 <div id="timeleft"></div>
                 <div id="team_form">
                     <div id="teaminfo"></div>
@@ -129,6 +130,7 @@
                             <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code1"></select>
                         </div>
                     </div>
+                    <br/>
                     <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Code</button>
                 </div>
             </form>
@@ -149,7 +151,6 @@
                 
                 <br />
                 <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
-          
             </form>
 
             <br />

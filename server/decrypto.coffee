@@ -69,30 +69,6 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
     #Hide unfinished messages
     messages = []
     for [m_red, m_blue] in zip(game.messages0, game.messages1)
-        # dm =
-        #     {0:
-        #         spy     : m_red.spy
-        #         message :
-        #             clues    : m_red.message
-        #             finished : m_red.message.length > 0
-        #         guesses : [
-        #             {code     : m_red.guess0
-        #              finished : m_red.guess0.length > 0},
-        #             {code     : m_red.guess1
-        #              finished : m_red.guess1.length > 0}
-        #         ]
-        #      1:
-        #         spy     : m_blue.spy
-        #         message :
-        #             clues    : m_blue.message
-        #             finished : m_blue.message.length > 0
-        #         guesses : [
-        #             {code     : m_blue.guess0
-        #              finished : m_blue.guess0.length > 0},
-        #             {code     : m_blue.guess1
-        #              finished : m_blue.guess1.length > 0}
-        #         ]
-        #     }
         dm = {0: JSON.parse(JSON.stringify(m_red)), 1: JSON.parse(JSON.stringify(m_blue))}
         if not dm[TEAM_RED].message.finished || not dm[TEAM_BLUE].message.finished
             for i in TEAMS
@@ -106,7 +82,11 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
 
     #Hide current codes
     codes = zip(game.codes0, game.codes1)
-    codes.pop()
+    round = game.round - 1
+    for i in TEAMS
+        m = game["messages"+i][round]
+        if round < 0 || not m.guess0.finished || not m.guess1.finished
+            codes[round][i] = []
     data.codes = codes
 
     #Add in secret info specific to player as we go

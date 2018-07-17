@@ -83,7 +83,7 @@ playerSchema.methods.leave_game = (cb) ->
 Player = mongoose.model('Player', playerSchema)
 
 messageSchema = new mongoose.Schema
-    spy : ObjectId
+    spy : String
     message : {clues: [String], finished: Boolean}
 #Guesses contains both teames guesses for the code.
     guess0 : {code: [Number], finished: Boolean}
@@ -190,7 +190,7 @@ gameSchema.methods.create_next_message = () ->
     for i in TEAMS
         code = shuffle([1..this.gameOptions.num_words])[..this.gameOptions.code_length - 1]
         this["messages"+i].push
-            spy      : this.currentSpy[i]
+            spy      : this.get_player(this.currentSpy[i]).name
             message  : {clues: [], finished: false}
             guess0   : {code: [], finished: false}
             guess1   : {code: [], finished: false}
