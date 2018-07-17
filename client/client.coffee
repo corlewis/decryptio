@@ -464,6 +464,39 @@ jQuery ->
 
                         $("#clues").append(li)
 
+            #Draw given clues for each keyword
+            for i in TEAMS
+                words = $("<ul>").addClass("list-group")
+                for keyword in [1..game.options.num_words]
+                    word_clues = $("<ul>").addClass("list-group used_clues")
+                    for code, round in game.codes
+                        for keyword2, code_index in code[i]
+                            if keyword == keyword2
+                                li = $("<li>")
+                                    .addClass("list-group-item")
+                                    .text(game.messages[round][i].message.clues[code_index])
+                                li.append($('<span>')
+                                  .text(game.messages[round][i].spy)
+                                  .addClass("pull-right " + team_to_class(i)))
+                                word_clues.append(li)
+
+                    li = $("<li>")
+                        .addClass("list-group-item")
+                        .text("Keyword " + keyword)
+                        .prepend($('<span>').addClass("caret-right").html("&#9658"))
+                        .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+                        .append(word_clues.hide())
+                    li.on 'click', (e) ->
+                        $('.used_clues', $(e.currentTarget)).toggle()
+                        $('.caret-right', $(e.currentTarget)).toggle()
+                        $('.caret-down', $(e.currentTarget)).toggle()
+                    words.append(li)
+
+                li = $("<li>").addClass("list-group-item " + team_to_class(i))
+                              .text(team_to_str(i) + "team's clues")
+                              .append(words)
+                $("#used_clues").append(li)
+
             #Make quest proposal button visible to leader
             $("#teaminfo").show()
             $("#team_form").show()
