@@ -269,7 +269,7 @@ gameSchema.methods.make_guess = (state_team, code, p_team) ->
         if not arraysEqual(m["guess"+state_team].code, code)
             this.score[state_team].miscommunications += 1
         if arraysEqual(m["guess"+other_team state_team].code, code)
-            this.score[state_team].intercepts += 1
+            this.score[other_team state_team].intercepts += 1
         return true
     else
         this.reset_timer(this.gameOptions.decrypt_time_limit)

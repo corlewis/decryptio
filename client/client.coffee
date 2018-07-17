@@ -407,7 +407,7 @@ jQuery ->
                                    "&#x2718: " + game.score[TEAM_RED].miscommunications + "/2")
             $("#blue_results").empty()
                              .html("&#x2714: " + game.score[TEAM_BLUE].intercepts + "/2 " +
-                                   "&#x2718: " + game.score[TEAM_RED].miscommunications + "/2")
+                                   "&#x2718: " + game.score[TEAM_BLUE].miscommunications + "/2")
 
             #Draw the list of keywords
             $("#keywords").empty().addClass("wordlist")
