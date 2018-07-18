@@ -340,10 +340,10 @@ jQuery ->
                     select += '<option value=' + secs + '>' + secs + ' Seconds </option>'
  
                 $("#opt_encrypt_timelimit").html(select)
-                $('#opt_encrypt_timelimit option[value="0"]').attr("selected", "selected");
+                $('#opt_encrypt_timelimit option[value="60"]').attr("selected", "selected");
 
                 $("#opt_decrypt_timelimit").html(select)
-                $('#opt_decrypt_timelimit option[value="0"]').attr("selected", "selected");
+                $('#opt_decrypt_timelimit option[value="60"]').attr("selected", "selected");
      
                 select = ''
                 for i in [1..8]
@@ -435,7 +435,7 @@ jQuery ->
                 for i in TEAMS.slice().reverse()
                     if list_m[i].message.finished && list_m[other_team i].message.finished
                         clues = $("<ul>")
-                            .attr("id", "clues" + round + i)
+                            .attr("id", "clues" + round_index + i)
                             .addClass("list-group clues")
                         for clue, clue_index in list_m[i].message.clues
                             li = $("<li>")
@@ -502,7 +502,7 @@ jQuery ->
                     words.append(li)
 
                 li = $("<li>").addClass("list-group-item " + team_to_class(i))
-                              .text(team_to_str(i) + "team's clues")
+                              .text(team_to_str(i) + " team's clues")
                               .append(words)
                 $("#used_clues").append(li)
 
@@ -522,10 +522,12 @@ jQuery ->
             else 
                 $("#timeleft").hide()
 
+            $("#clues00").show()
+            $("#clues01").show()
+
             if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
-                $("#clues0" + state_team).show()
                 $('.caret-right', "#0" + state_team).hide()
                 $('.caret-down', "#0" + state_team).show()
                 if not me.spy
@@ -657,9 +659,10 @@ jQuery ->
 
         if words.length = 3 && words.every((x) -> x.length > 0)
             $("#clue_entry").hide()
+            $("#spywarning").empty()
             socket.emit('give_clue', clue)
         else
-            $("#spyinfo").html("You must give valid clues!")
+            $("#spywarning").html("You must give valid clues!")
 
     $("#form-select-guess").on 'submit', (e) ->
         e.preventDefault()
