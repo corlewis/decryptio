@@ -166,7 +166,7 @@ jQuery ->
         if can_end_turn
             $("#timeleft").text("Time left: " + neg + minutes + ":" + seconds)
             if timeleft < 0
-                $("#btn_force_end").show()
+                $("#force_end").show()
 
     socket.on 'teaminfo', (game) ->
        if game.state != GAME_PREGAME
@@ -197,7 +197,7 @@ jQuery ->
         $("#stale_version").hide()
         $("#btn_randomize_spies").hide()
         $("#btn_randomize_teams").hide()
-        $("#btn_force_end").hide()
+        $("#force_end").hide()
 
         $("#lobby").hide()
         $("#timeleft").hide()
@@ -575,10 +575,7 @@ jQuery ->
                                            " leader. Waiting for the other spy.")
                 else
                     $("#btn_select_guess").hide()
-                    $("guess_code").hide()
-                    $("guess_code1").hide()
-                    $("guess_code2").hide()
-                    $("guess_code3").hide()
+                    $("#guess_code").hide()
                     $("#teaminfo").html("You are on team " + teamstr + ". Waiting for the clues.")
 
             #If someone is trying to reconnect show vote

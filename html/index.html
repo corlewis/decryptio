@@ -111,12 +111,10 @@
                 <span class="pull-left redteam" id="red_results"></span>
                 <span class="pull-right blueteam" id="blue_results"></span>
             </div>
-            <br/>
+            <br />
             <ul class="list-group" id="keywords"></ul>
+            <div id="timeleft"></div>
             <form id="form-select-guess">
-                <ul class="list-group" id="clues"></ul>
-                <ul class="list-group" id="used_clues"></ul>
-                <div id="timeleft"></div>
                 <div id="team_form">
                     <div id="teaminfo"></div>
                     <div id="guess_code">
@@ -129,8 +127,8 @@
                         <div>
                             <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code1"></select>
                         </div>
+                        <br />
                     </div>
-                    <br/>
                     <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Code</button>
                 </div>
             </form>
@@ -147,14 +145,19 @@
                     <div>
                         <input type="text" id="clue_entry3" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 3" autofocus></input>
                     </div>
+                    <br />
                 </div>
-                
-                <br />
                 <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
             </form>
 
+            <div id="force_end"
+                <br />
+                <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">Force End Turn</button>
+            </div>
+
             <br />
-            <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">Force End Turn</button>
+            <ul class="list-group" id="clues"></ul>
+            <ul class="list-group" id="used_clues"></ul>
 
             <br />
             <button class="btn btn-lg btn-danger btn-block" id="btn_quit">Quit Game</button>
