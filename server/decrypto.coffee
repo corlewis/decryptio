@@ -38,6 +38,7 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
     data =
         state           : game.state
         options         : game.gameOptions
+        id              : game.id
         score           : game.score
         round           : game.round
         timeLimit       : game.timeLimit
@@ -273,7 +274,7 @@ io.on 'connection', (socket) ->
                     if p.team != TEAM_NONE
                         realplayers += 1
       
-                if vs > (realplayers / 2)
+                if vs >= (realplayers / 2)
                     sock = io.sockets.sockets[game.reconnect_sock]
                     #Save player's socket data
                     if sock && sock.player
@@ -542,11 +543,12 @@ io.on 'connection', (socket) ->
                       not blue_m["guess"+p.team].finished
                 both_finished = game.make_guess(TEAM_BLUE, code, p.team)
                 if both_finished
-                    game.state = GAME_ENCRYPT
-                    game.timeLimit = 0
-                    game.set_next_spies()
-                    game.create_next_message()
-                    game.check_for_game_end()
+                    end = game.check_for_game_end()
+                    if not end
+                        game.state = GAME_ENCRYPT
+                        game.timeLimit = 0
+                        game.set_next_spies()
+                        game.create_next_message()
             else
                 return
 
@@ -580,11 +582,12 @@ io.on 'connection', (socket) ->
                       not blue_m["guess"+other_team p.team].finished
                 both_finished = game.make_guess(TEAM_BLUE, code, other_team p.team)
                 if both_finished
-                    game.state = GAME_ENCRYPT
-                    game.timeLimit = 0
-                    game.set_next_spies()
-                    game.create_next_message()
-                    game.check_for_game_end()
+                    end = game.check_for_game_end()
+                    if not end
+                        game.state = GAME_ENCRYPT
+                        game.timeLimit = 0
+                        game.set_next_spies()
+                        game.create_next_message()
             else
                 return
 

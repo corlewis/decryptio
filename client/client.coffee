@@ -246,8 +246,13 @@ jQuery ->
             window.have_game_info = false
 
         else if game.state == GAME_FINISHED
-            socket.emit 'leavegame'
-            window.location = '/game?id=' + game.id
+            if game.winningTeam == TEAM_NONE
+                #FIXME
+                socket.emit 'leavegame'
+                window.location = '/game?id=' + game.id
+            else
+                socket.emit 'leavegame'
+                window.location = '/game?id=' + game.id
         
         else if game.state == GAME_PREGAME
             $("#pregame").show()

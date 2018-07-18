@@ -36,13 +36,25 @@ jQuery ->
                 if not res then alert "abort abort!"
                 displayGame(res)
 
-TEAM_RED           = 1
-TEAM_BLUE          = 2
+TEAM_RED           = 0
+TEAM_BLUE          = 1
+TEAM_NONE          = 2
+TEAMS              = [TEAM_RED, TEAM_BLUE]
 
-WORD_RED           = 1
-WORD_BLUE          = 2
-WORD_GREY          = 3
-WORD_BLACK         = 4
+other_team = (team) ->
+    if team == TEAM_RED
+        return TEAM_BLUE
+    else if team == TEAM_BLUE
+        return TEAM_RED
+    else
+        console.log('No other team:', team)
+        return TEAM_NONE
+
+team_to_str = (team) ->
+    if team == TEAM_RED
+        teamstr = "Red"
+    else if team == TEAM_BLUE
+        teamstr = "Blue"
 
 displayGame = (game) ->
 
@@ -59,71 +71,121 @@ displayGame = (game) ->
         $("#gameover")
             .addClass("redteam")
             .text("Game Over. Red team wins!")
-    else
+    else if game.winningTeam == TEAM_BLUE
         $("#gameover")
             .addClass("blueteam")
             .text(bluestr)
+    else
+        $("#gameover")
+            .text("Teams are tied! The team that can best guess their opponents keywords wins!")
 
+    #Draw the scores
+    $("#red_results").empty()
+                     .html("&#x2714: " + game.score[TEAM_RED].intercepts + "/2 " +
+                           "&#x2718: " + game.score[TEAM_RED].miscommunications + "/2")
+    $("#blue_results").empty()
+                     .html("&#x2714: " + game.score[TEAM_BLUE].intercepts + "/2 " +
+                           "&#x2718: " + game.score[TEAM_BLUE].miscommunications + "/2")
 
-    $("#players").empty().addClass("wordlist")
-    for w in game.words
-        li = $("<li>")
-            .addClass("list-group-item")
-            .addClass("wordlist")
-            .text(w.word)
-
-        if w.guessed
-            li.addClass("guessed")
-        
-        li.addClass(kind_to_class(w.kind))
-
-        $("#players").append(li)
-
+    messages = zip(game.messages0, game.messages1)
+    codes = zip(game.codes0, game.codes1)
     $("#clues").empty()
+    #Draw the list of messages
+    for list_m, round_index in messages
+        round = round_index + 1
+        code = codes[round_index]
+        for i in TEAMS
+            if list_m[i].message.finished && list_m[other_team i].message.finished
+                clues = $("<ul>")
+                    .attr("id", "clues" + round + i)
+                    .addClass("list-group clues")
+                for clue, clue_index in list_m[i].message.clues
+                    li = $("<li>")
+                        .addClass("list-group-item")
+                        .text(clue_index + 1 + ": " + clue)
+                    if list_m[i].guess0.finished && list_m[i].guess1.finished
+                        li.append($('<span>')
+                          .append(code[i][clue_index])
+                          .addClass("pull-right " + team_to_class(i)))
+                        li.append($('<span>').append("&nbsp;|&nbsp;")
+                          .addClass("pull-right").css('color', 'black'))
+                        li.append($('<span>')
+                          .append(guess_to_str(list_m[i].guess1.code[clue_index]))
+                          .addClass("pull-right " + team_to_class(TEAM_BLUE)))
+                        li.append($('<span>').append("&nbsp;|&nbsp;")
+                          .addClass("pull-right").css('color', 'black'))
+                        li.append($('<span>')
+                          .append(guess_to_str(list_m[i].guess0.code[clue_index]))
+                          .addClass("pull-right " + team_to_class(TEAM_RED)))
+                    clues.append(li)
 
-    for c, index in game.clues
-        guesses = $("<ul>")
-            .attr("id", "guesses" + index)
-            .addClass("list-group")
-        for g in c.guesses
+                li = $("<li>")
+                    .addClass("list-group-item")
+                    .text("Round " + round + ": " + list_m[i].spy)
+                    .prepend($('<span>').addClass("caret-right").html("&#9658"))
+                    .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+                    .append(clues.hide())
+                li.addClass(team_to_class(i))
+                li.on 'click', (e) ->
+                    $('.clues', $(e.currentTarget)).toggle()
+                    $('.caret-right', $(e.currentTarget)).toggle()
+                    $('.caret-down', $(e.currentTarget)).toggle()
+
+                $("#clues").append(li)
+
+    $("#used_clues").empty()
+    #Draw given clues for each keyword
+    for i in TEAMS
+        words = $("<ul>").addClass("list-group")
+        for keyword in [1..game.gameOptions.num_words]
+            word_clues = $("<ul>").addClass("list-group used_clues")
+            for code, round in codes
+                for keyword2, code_index in code[i]
+                    clue = messages[round][i].message.clues[code_index]
+                    if keyword == keyword2 && clue != "<Turn Timeout>"
+                        li = $("<li>")
+                            .addClass("list-group-item")
+                            .text(clue)
+                        li.append($('<span>')
+                          .text(messages[round][i].spy)
+                          .addClass("pull-right " + team_to_class(i)))
+                        word_clues.append(li)
+
             li = $("<li>")
-                .addClass("list-group-item guessed")
-                .text(g.word)
-                .append($('<span>').text(g.player)
-                                   .addClass("pull-right " + team_to_class(c.team)))
-            li.addClass(kind_to_class(g.kind))
+                .addClass("list-group-item")
+                .text("Keyword " + keyword + ": " + game.keywords[i][keyword - 1])
+                .prepend($('<span>').addClass("caret-right").html("&#9658"))
+                .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+                .append(word_clues.hide())
+            li.on 'click', (e) ->
+                $('.used_clues', $(e.currentTarget)).toggle()
+                $('.caret-right', $(e.currentTarget)).toggle()
+                $('.caret-down', $(e.currentTarget)).toggle()
+            words.append(li)
 
-            guesses.append(li)
-
-        if c.numWords > 10
-            c.numWords = "Infinite"
-
-        li = $("<li>")
-            .attr("id", index)
-            .addClass("list-group-item")
-            .text(c.word)
-            .prepend($('<span>').addClass("caret-right").html("&#9658"))
-            .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
-            .append($('<span>').addClass("pull-right").text(c.numWords))
-            .append(guesses)
-        li.addClass(team_to_class(c.team))
-        li.on 'click', (e) ->
-            $("#guesses" + $(e.currentTarget).attr("id")).toggle()
-            $('.caret-right', $(e.currentTarget)).toggle()
-            $('.caret-down', $(e.currentTarget)).toggle()
-
-        $("#clues").append(li)
-        $("#guesses" + index).hide()
+        li = $("<li>").addClass("list-group-item " + team_to_class(i))
+                      .text(team_to_str(i) + " team's clues")
+                      .append(words)
+        $("#used_clues").append(li)
 
 kind_to_class = (kind) ->
-        if kind == WORD_RED
+        if kind == TEAM_RED
             "redteam"
-        else if kind == WORD_BLUE
+        else if kind == TEAM_BLUE
             "blueteam"
-        else if kind == WORD_GREY
+        else if kind == TEAM_NONE
             "noteam"
-        else if kind == WORD_BLACK
-            "blackteam"
 
 team_to_class = (team) ->
         kind_to_class(team)
+
+guess_to_str = (guess) ->
+        if guess == -1
+            "&nbsp;"
+        else guess
+
+zip = () ->
+  lengthArray = (arr.length for arr in arguments)
+  length = Math.min(lengthArray...)
+  for i in [0...length]
+    arr[i] for arr in arguments

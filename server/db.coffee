@@ -205,18 +205,24 @@ gameSchema.methods.check_for_game_end = () ->
     red_win = red_int >= 2 || blue_miss >= 2
     blue_win = blue_int >= 2 || red_miss >= 2
 
-    if red_win and blue_win
+    if this.round >= 8 || (red_win && blue_win)
         this.winningTeam =
             if red_int - red_miss > blue_int - blue_miss
-            then TEAM_RED else if red_int - red_miss < blue_int - blue_miss
-            then TEAM_BLUE else TEAM_NONE
+                TEAM_RED
+            else if red_int - red_miss < blue_int - blue_miss
+                TEAM_BLUE
+            else
+                TEAM_NONE
     else if red_win
         this.winningTeam = TEAM_RED
     else if blue_win
         this.winningTeam = TEAM_BLUE
 
-    if red_win || blue_win
+    if this.round >= 8 || red_win || blue_win
         this.state = GAME_FINISHED
+        return true
+    else
+        return false
 
 gameSchema.methods.time_left = ->
     round_time = Math.floor ((Date.now() - this.roundStart) / 1000)
@@ -262,7 +268,6 @@ gameSchema.methods.make_guess = (state_team, code, p_team) ->
     m = this["messages"+state_team][round]
     m["guess"+p_team].code = deep_copy(code)
     m["guess"+p_team].finished = true
-    console.log(m)
 
     if m["guess"+other_team p_team].finished
         code = this["codes"+state_team][round]
