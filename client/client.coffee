@@ -4,6 +4,7 @@ Array::sum = () ->
 VERSION = 1
 timer_handle = undefined
 can_end_turn = false
+force_end_state = GAME_LOBBY
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
@@ -162,9 +163,10 @@ jQuery ->
         if seconds < 10
             seconds = "0" + seconds
 
-        $("#timeleft").text("Time left: " + neg + minutes + ":" + seconds)
-        if can_end_turn && timeleft < 0
-            $("#btn_force_end").show()
+        if can_end_turn
+            $("#timeleft").text("Time left: " + neg + minutes + ":" + seconds)
+            if timeleft < 0
+                $("#btn_force_end").show()
 
     socket.on 'teaminfo', (game) ->
        if game.state != GAME_PREGAME
@@ -383,6 +385,7 @@ jQuery ->
                     me = p
 
             m = game.messages[game.messages.length - 1]
+            force_end_state = game.state
             if game.state == GAME_ENCRYPT
                 can_end_turn = game.timeLimit > 0 && m[me.team].message.finished &&
                          not m[other_team me.team].message.finished
@@ -471,10 +474,11 @@ jQuery ->
                     word_clues = $("<ul>").addClass("list-group used_clues")
                     for code, round in game.codes
                         for keyword2, code_index in code[i]
-                            if keyword == keyword2
+                            clue = game.messages[round][i].message.clues[code_index]
+                            if keyword == keyword2 && clue != "<Turn Timeout>"
                                 li = $("<li>")
                                     .addClass("list-group-item")
-                                    .text(game.messages[round][i].message.clues[code_index])
+                                    .text(clue)
                                 li.append($('<span>')
                                   .text(game.messages[round][i].spy)
                                   .addClass("pull-right " + team_to_class(i)))
@@ -677,7 +681,10 @@ jQuery ->
 
     $("#btn_force_end").on 'click', (e) ->
         $("#btn_force_end").hide()
-        socket.emit 'force_end'
+        if force_end_state == GAME_ENCRYPT
+            socket.emit 'force_end_encrypt'
+        else if force_end_state in [GAME_DECRYPT_RED, GAME_DECRYPT_BLUE]
+            socket.emit 'force_end_decrypt'
 
     $("#btn_quit").on 'click', (e) ->
         $("#game").hide()

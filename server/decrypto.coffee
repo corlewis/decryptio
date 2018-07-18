@@ -505,7 +505,7 @@ io.on 'connection', (socket) ->
             round = game.round - 1
             m = game["messages"+team][round]
             other_m = game["messages"+other_team team][round]
-            if time_left > 0 || game.state != GAME_ENCRYPT || not m.message.finished
+            if time_left > 0 || game.state != GAME_ENCRYPT || not m.message.finished ||
                                 other_m.message.finished
                 return
 
