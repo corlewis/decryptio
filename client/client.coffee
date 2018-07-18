@@ -420,7 +420,6 @@ jQuery ->
                 $("#keywords").append(li)
 
             $("#clues").empty()
-
             #Draw the list of messages
             for list_m, round_index in game.messages.slice().reverse()
                 round = game.messages.length - round_index
@@ -436,17 +435,17 @@ jQuery ->
                                 .text(clue_index + 1 + ": " + clue)
                             if list_m[i].guess0.finished && list_m[i].guess1.finished
                                 li.append($('<span>')
-                                  .text(codes[i][clue_index])
+                                  .append(codes[i][clue_index])
                                   .addClass("pull-right " + team_to_class(i)))
                                 li.append($('<span>').append("&nbsp;|&nbsp;")
                                   .addClass("pull-right").css('color', 'black'))
                                 li.append($('<span>')
-                                  .text(list_m[i].guess1.code[clue_index])
+                                  .append(guess_to_str(list_m[i].guess1.code[clue_index]))
                                   .addClass("pull-right " + team_to_class(TEAM_BLUE)))
                                 li.append($('<span>').append("&nbsp;|&nbsp;")
                                   .addClass("pull-right").css('color', 'black'))
                                 li.append($('<span>')
-                                  .text(list_m[i].guess0.code[clue_index])
+                                  .append(guess_to_str(list_m[i].guess0.code[clue_index]))
                                   .addClass("pull-right " + team_to_class(TEAM_RED)))
                             clues.append(li)
 
@@ -464,6 +463,7 @@ jQuery ->
 
                         $("#clues").append(li)
 
+            $("#used_clues").empty()
             #Draw given clues for each keyword
             for i in TEAMS
                 words = $("<ul>").addClass("list-group")
@@ -723,3 +723,8 @@ kind_to_class = (kind) ->
 
 team_to_class = (team) ->
         kind_to_class(team)
+
+guess_to_str = (guess) ->
+        if guess == -1
+            "&nbsp;"
+        else guess

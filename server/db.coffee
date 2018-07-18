@@ -195,8 +195,6 @@ gameSchema.methods.create_next_message = () ->
             guess0   : {code: [], finished: false}
             guess1   : {code: [], finished: false}
         this["codes"+i].push code
-        console.log(JSON.stringify(this["messages"+i],null,4))
-        console.log(this["codes"+i])
     this.round++
 
 gameSchema.methods.check_for_game_end = () ->
@@ -255,9 +253,11 @@ gameSchema.methods.start_game = (teams, is_coop) ->
     this.isCoop = is_coop
     this.setup_words()
     this.create_next_message()
+    fake_code = Array(this.gameOptions.code_length).fill(-1)
+    for i in TEAMS
+        this.make_guess(i, fake_code, other_team i)
 
 gameSchema.methods.make_guess = (state_team, code, p_team) ->
-    console.log(code)
     round = this.round - 1
     m = this["messages"+state_team][round]
     m["guess"+p_team].code = deep_copy(code)

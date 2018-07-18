@@ -85,7 +85,7 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
     round = game.round - 1
     for i in TEAMS
         m = game["messages"+i][round]
-        if round < 0 || not m.guess0.finished || not m.guess1.finished
+        if round >= 0 && (not m.guess0.finished || not m.guess1.finished)
             codes[round][i] = []
     data.codes = codes
 
@@ -563,19 +563,20 @@ io.on 'connection', (socket) ->
 
             if game.time_left() > 0 || game.isCoop
                 return
+
             p = game.get_player(player._id)
             round = game.round - 1
             red_m = game["messages"+TEAM_RED][round]
             blue_m = game["messages"+TEAM_BLUE][round]
-            code = Array(game.gameOptions.code_length).fill(0)
+            code = Array(game.gameOptions.code_length).fill(-1)
 
-            if game.state == GAME_DECRYPT_RED && red_m["guess"+p.team].finished
+            if game.state == GAME_DECRYPT_RED && red_m["guess"+p.team].finished &&
                       not red_m["guess"+other_team p.team].finished
                 both_finished = game.make_guess(TEAM_RED, code, other_team p.team)
                 if both_finished
                     game.state = GAME_DECRYPT_BLUE
                     game.timeLimit = 0
-            else if game.state == GAME_DECRYPT_BLUE && blue_m["guess"+p.team].finished
+            else if game.state == GAME_DECRYPT_BLUE && blue_m["guess"+p.team].finished &&
                       not blue_m["guess"+other_team p.team].finished
                 both_finished = game.make_guess(TEAM_BLUE, code, other_team p.team)
                 if both_finished
