@@ -82,14 +82,18 @@ playerSchema.methods.leave_game = (cb) ->
 
 Player = mongoose.model('Player', playerSchema)
 
+# Many fields are indexed by hardcoded team id's. This is a disgusting
+# hack after I gave up on Mongo storing the more complicated structures
+# I originally used.
+# As an example of how to use them, 'this["codes"+0]' is equivalent to
+# 'this.codes0' (and I originally would have had 'this.codes[0]').
+# Similarly, 'this.score[0]' is equivalent to 'this.score.0'
 messageSchema = new mongoose.Schema
     spy : String
     message : {clues: [String], finished: Boolean}
-#Guesses contains both teames guesses for the code.
     guess0 : {code: [Number], finished: Boolean}
     guess1 : {code: [Number], finished: Boolean}
 
-#Many fields are indexed by hardcoded team id's.
 gameSchema = new mongoose.Schema
     state       : {type: Number, default: GAME_LOBBY}
     gameOptions : {
