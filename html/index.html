@@ -29,9 +29,12 @@
         <div id="signin">
             <form class="form-signin" id="form-signin">
                 <h2 class="form-signin-heading">Please enter a name</h2>
-                <input type="text" id="playername" class="form-control" maxlength="16" placeholder="Name" autofocus>
+                <input type="text" id="playername" class="form-control" maxlength="16"
+                       placeholder="Name" autofocus>
                 <br />
-                <button id="btn_signin" class="btn btn-lg btn-primary btn-block">Go</button>
+                <button id="btn_signin" class="btn btn-lg btn-primary btn-block">
+                    Go
+                </button>
                 <br />
             </form>
         </div>
@@ -42,7 +45,9 @@
             <ul class="list-group" id="reconnectlist"></ul>
             <br />
             <p style="text-align: center" id="reconnectmessage"></p>
-            <button class="btn btn-lg btn-danger btn-block" id="btn_noreconnect">No, take me to the lobby</button>
+            <button class="btn btn-lg btn-danger btn-block" id="btn_noreconnect">
+                No, take me to the lobby
+            </button>
         </div>
 
         <div id="lobby">
@@ -55,18 +60,28 @@
                 <h3 style="text-align: center">In-Progress Games</h3>
                 <ul class="list-group" id="oldgamelist"></ul>
             </div>
-            <button class="btn btn-lg btn-primary btn-block" id="btn_newgame">New Game</button>
+            <button class="btn btn-lg btn-primary btn-block" id="btn_newgame">
+                New Game
+            </button>
             <br />
-            <button class="btn btn-lg btn-warning btn-block" id="btn_changename">Change Name</button>
+            <button class="btn btn-lg btn-warning btn-block" id="btn_changename">
+                Change Name
+            </button>
             <br />
-            <button class="btn btn-lg btn-info btn-block" id="btn_reconnect">Reconnect to Previous Game</button>
+            <button class="btn btn-lg btn-info btn-block" id="btn_reconnect">
+                Reconnect to Previous Game
+            </button>
         </div>
 
         <div id="pregame">
             <h2 style="text-align: center">Decryptio</h2>
             <ul class="list-group" id="gameinfo"></ul>
-            <button class="btn btn-lg btn-primary btn-block" id="btn_ready">Start Game</button>
-            <button class="btn btn-lg btn-danger btn-block" id="btn_leavelobby">Leave Game</button>
+            <button class="btn btn-lg btn-primary btn-block" id="btn_ready">
+                Start Game
+            </button>
+            <button class="btn btn-lg btn-danger btn-block" id="btn_leavelobby">
+                Leave Game
+            </button>
 
             <div class="panel panel-default" id="gameoptions">
                 <div class="panel-heading">
@@ -96,8 +111,12 @@
                 </ul>
             </div>
 
-            <button class="btn btn-lg btn-info btn-block" id="btn_randomize_teams">Randomize Teams</button>
-            <button class="btn btn-lg btn-primary btn-block" id="btn_start_game">Start Game</button>
+            <button class="btn btn-lg btn-info btn-block" id="btn_randomize_teams">
+                Randomize Teams
+            </button>
+            <button class="btn btn-lg btn-primary btn-block" id="btn_start_game">
+                Start Game
+            </button>
 
             <p id="waitforhost">
                 Please wait for the host to begin the game.
@@ -117,19 +136,27 @@
             <form id="form-select-guess">
                 <div id="team_form">
                     <div id="teaminfo"></div>
+                    <br />
                     <div id="guess_code">
                         <div>
-                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code3"></select>
+                            <select class="pull-right" id="guess_code3"
+                                    style="width:27%;top: 50%;transform:translateY(-50%);">
+                            </select>
                         </div>
                         <div>
-                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code2"></select>
+                            <select class="pull-right" id="guess_code2"
+                                    style="width:27%;top: 50%;transform:translateY(-50%);">
+                            </select>
                         </div>
                         <div>
-                            <select class="pull-right" style="width:27%;position:relative;top: 50%;transform:translateY(+30%);" id="guess_code1"></select>
+                            <select class="pull-right" id="guess_code1"
+                                    style="width:27%;top: 50%;transform:translateY(-50%);">
+                            </select>
                         </div>
-                        <br />
+                        <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">
+                            Guess Code
+                        </button>
                     </div>
-                    <button class="btn btn-lg btn-primary btn-block" id="btn_select_guess">Guess Code</button>
                 </div>
             </form>
             
@@ -138,22 +165,35 @@
                 <div id="spywarning"></div>
                 <div id="clue_entry">
                     <div>
-                        <input type="text" id="clue_entry1" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 1" autofocus></input>
+                        <input type="text" id="clue_entry1" class="form-control"
+                               style="width:70%;display: inline-block;" maxlength="50"
+                               placeholder="Clue 1" autofocus>
+                        </input>
                     </div>
                     <div>
-                        <input type="text" id="clue_entry2" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 2" autofocus></input>
+                        <input type="text" id="clue_entry2" class="form-control"
+                               style="width:70%;display: inline-block;" maxlength="50"
+                               placeholder="Clue 2" autofocus>
+                        </input>
                     </div>
                     <div>
-                        <input type="text" id="clue_entry3" class="form-control" style="width:70%;display: inline-block;" maxlength="50" placeholder="Clue 3" autofocus></input>
+                        <input type="text" id="clue_entry3" class="form-control"
+                               style="width:70%;display: inline-block;" maxlength="50"
+                               placeholder="Clue 3" autofocus>
+                        </input>
                     </div>
                     <br />
                 </div>
-                <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">Give Clue</button>
+                <button class="btn btn-lg btn-primary btn-block" id="btn_give_clue">
+                    Give Clue
+                </button>
             </form>
 
             <div id="force_end"
                 <br />
-                <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">Force End Turn</button>
+                <button class="btn btn-lg btn-block btn-danger" id="btn_force_end">
+                    Force End Turn
+                </button>
             </div>
 
             <br />
@@ -171,15 +211,25 @@
                 <br />
                 <div class="btn-group" data-toggle="buttons">
                     <label class="btn btn-success">
-                        <input type="radio" name="reconnectvote" value="allow"><span class="btnicon"><img class="icon" src="tick-wh.png" /></span> Allow
+                        <input type="radio" name="reconnectvote" value="allow">
+                        <span class="btnicon">
+                            <img class="icon" src="tick-wh.png" />
+                        </span>
+                        Allow
                     </label>
                     <label class="btn btn-danger">
-                        <input type="radio" name="reconnectvote" value="deny">Deny <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
+                        <input type="radio" name="reconnectvote" value="deny">
+                        Deny
+                        <span class="btnicon">
+                            <img class="icon" src="cross-wh.png" />
+                        </span>
                     </label>
                 </div>
                 <br />
                 <br />
-                <button class="btn btn-primary btn-block btn-panel" id="btn_submitreconnectvote">Submit</button>
+                <button class="btn btn-primary btn-block btn-panel" id="btn_submitreconnectvote">
+                    Submit
+                </button>
                 <br />
             </div>
 
