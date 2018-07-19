@@ -1,5 +1,5 @@
-Codewords
+Decryptio
 =============
 
-This is an app to play Codewords, based on the Avalon app
+This is an app to play Decrypto, based on the Codewords app, which was based on the Avalon app.
 
