@@ -506,22 +506,13 @@ jQuery ->
                               .append(words)
                 $("#used_clues").append(li)
 
-            #Make quest proposal button visible to leader
-            $("#teaminfo").show()
-            $("#team_form").show()
             teamstr = team_to_str me.team
-
-            if me.spy
-                $("#team_form").hide()
-                $("#form-give-clue").show()
-            else
-                $("#form-give-clue").hide()
-
+            $("#form-select-guess").hide()
+            $("#form-give-clue").hide()
             if game.timeLimit > 0
                 $("#timeleft").show()
             else 
                 $("#timeleft").hide()
-
             $("#clues00").show()
             $("#clues01").show()
 
@@ -530,7 +521,7 @@ jQuery ->
                 state_teamstr = team_to_str state_team
                 $('.caret-right', "#0" + state_team).hide()
                 $('.caret-down', "#0" + state_team).show()
-                if not me.spy
+                if not me.spy || me.team != state_team
                     select = ''
                     for i in [1..game.options.num_words]
                         select += '<option value=' + i + '>' + i + '</option>'
@@ -542,48 +533,39 @@ jQuery ->
                     $('#guess_code3 option[value="0"]').attr("selected", "selected");
 
                     if m[state_team]["guess"+me.team].finished
-                        $("#btn_select_guess").hide()
-                        $("#guess_code").hide()
-                        $("#teaminfo").html("You are on team " + teamstr +
+                        $("#form-select-guess").hide()
+                        $("#gamemessage").html("You are on team " + teamstr +
                                                ". Waiting for the other team to guess the " +
                                                state_teamstr + " code.")
                     else
-                        $("#btn_select_guess").show()
-                        $("#guess_code").show()
-                        $("#teaminfo").html("You are on team " + teamstr + ". Try to guess the " +
+                        $("#form-select-guess").show()
+                        $("#gamemessage").html("You are on team " + teamstr + ". Try to guess the " +
                                                 state_teamstr + " code.")
                 else
-                    $("#btn_give_clue").hide()
-                    $("#clue_entry").hide()
                     if not m[state_team]["guess"+me.team].finished &&
                        not m[state_team]["guess"+other_team me.team].finished
-                        $("#spyinfo").html("You are the " + teamstr +
+                        $("#gamemessage").html("You are the " + teamstr +
                                                " spy. Waiting for teams to guess the " +
                                                state_teamstr + " code.")
                     else if not m[state_team]["guess"+me.team].finished
-                        $("#spyinfo").html("You are the " + teamstr +
+                        $("#gamemessage").html("You are the " + teamstr +
                                                " spy. Waiting for your team to guess the " +
                                                state_teamstr + " code.")
                     else if not m[state_team]["guess"+other_team me.team].finished
-                        $("#spyinfo").html("You are the " + teamstr +
+                        $("#gamemessage").html("You are the " + teamstr +
                                                " spy. Waiting for their team to guess the " +
                                                state_teamstr + " code.")
 
             if (game.state == GAME_ENCRYPT)
                 if me.spy
-                    $("#btn_give_clue").show()
-                    $("#clue_entry").show()
                     if not m[me.team].message.finished
-                        $("#spyinfo").html("You are the " + teamstr + " leader. Enter your clues.\n The code you are encrypting is " + game.current_code)
+                        $("#form-give-clue").show()
+                        $("#gamemessage").html("You are the " + teamstr + " leader. Enter your clues.\n The code you are encrypting is " + game.current_code)
                     else if not m[other_team me.team].message.finished
-                        $("#btn_give_clue").hide()
-                        $("#clue_entry").hide()
-                        $("#spyinfo").html("You are the " + teamstr +
+                        $("#gamemessage").html("You are the " + teamstr +
                                            " leader. Waiting for the other spy.")
                 else
-                    $("#btn_select_guess").hide()
-                    $("#guess_code").hide()
-                    $("#teaminfo").html("You are on team " + teamstr + ". Waiting for the clues.")
+                    $("#gamemessage").html("You are on team " + teamstr + ". Waiting for the clues.")
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -647,6 +629,7 @@ jQuery ->
             socket.emit('startgame', {options: options, teams : teams, is_coop: is_coop})
         else
             return
+
     $("#form-give-clue").on 'submit', (e) ->
         e.preventDefault()
         words = []
@@ -659,10 +642,10 @@ jQuery ->
 
         if words.length = 3 && words.every((x) -> x.length > 0)
             $("#clue_entry").hide()
-            $("#spywarning").empty()
+            $("#warning").empty()
             socket.emit('give_clue', clue)
         else
-            $("#spywarning").html("You must give valid clues!")
+            $("#warning").html("You must give valid clues!")
 
     $("#form-select-guess").on 'submit', (e) ->
         e.preventDefault()
@@ -675,14 +658,11 @@ jQuery ->
             code : code.slice()
 
         if code.length = 3 && code.every((x) -> x > 0)
-            $("#guess_code").hide()
-            $("guess_code1").hide()
-            $("guess_code2").hide()
-            $("guess_code3").hide()
-
+            $("#form-select-guess").hide()
+            $("#warning").empty()
             socket.emit('make_guess', guess)
         else
-            $("#leaderinfo").html("You must make a guess!")
+            $("#warning").html("You must make a guess!")
 
     $("#btn_force_end").on 'click', (e) ->
         $("#btn_force_end").hide()
@@ -713,17 +693,6 @@ jQuery ->
     $("#btn_noreconnect").on 'click', (e) ->
         socket.emit('noreconnect', {name: $("#playername").val()})
         $("#login").hide()
-
-
-select_for_guess = (li) ->
-        $("#players li").each () ->
-            input = $($(this).children(":input")[0])
-            $(this).removeClass("active")
-            input.attr(value: 0)
-
-        input = $(li.children(":input")[0])
-        li.addClass("active")
-        input.attr(value: 1)
 
 kind_to_class = (kind) ->
         if kind == TEAM_RED
