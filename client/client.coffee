@@ -198,6 +198,7 @@ jQuery ->
         $("#btn_randomize_spies").hide()
         $("#btn_randomize_teams").hide()
         $("#force_end").hide()
+        $("#force_end_confirm").hide()
 
         $("#lobby").hide()
         $("#timeleft").hide()
@@ -669,11 +670,18 @@ jQuery ->
             $("#warning").html("You must make a guess!")
 
     $("#btn_force_end").on 'click', (e) ->
-        $("#btn_force_end").hide()
+        $("#force_end_confirm").show()
+
+    $("#btn_force_end_confirm").on 'click', (e) ->
+        $("#force_end_confirm").hide()
+        $("#force_end").hide()
         if force_end_state == GAME_ENCRYPT
             socket.emit 'force_end_encrypt'
         else if force_end_state in [GAME_DECRYPT_RED, GAME_DECRYPT_BLUE]
             socket.emit 'force_end_decrypt'
+
+    $("#btn_force_end_cancel").on 'click', (e) ->
+        $("#force_end_confirm").hide()
 
     $("#btn_quit").on 'click', (e) ->
         $("#game").hide()

@@ -229,3 +229,8 @@ body.dragging, body.dragging * {
 #gameinfo li.placeholder :before {
     postion: absolute;
 }
+
+.flex-container {
+  display: flex;
+  justify-content: space-around;
+}
