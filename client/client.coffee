@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 1
+VERSION = 2
 timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
@@ -522,15 +522,17 @@ jQuery ->
                 $('.caret-right', "#0" + state_team).hide()
                 $('.caret-down', "#0" + state_team).show()
                 if not me.spy || me.team != state_team
-                    select = ''
-                    for i in [1..game.options.num_words]
-                        select += '<option value=' + i + '>' + i + '</option>'
-                    $("#guess_code1").html(select)
-                    $('#guess_code1 option[value="0"]').attr("selected", "selected");
-                    $("#guess_code2").html(select)
-                    $('#guess_code2 option[value="0"]').attr("selected", "selected");
-                    $("#guess_code3").html(select)
-                    $('#guess_code3 option[value="0"]').attr("selected", "selected");
+                    if not $("#guess_code").hasClass("has-options" + state_team)
+                        select = ''
+                        for i in [1..game.options.num_words]
+                            select += '<option value=' + i + '>' + i + '</option>'
+                        $("#guess_code1").html(select)
+                        $('#guess_code1 option[value="0"]').attr("selected", "selected");
+                        $("#guess_code2").html(select)
+                        $('#guess_code2 option[value="0"]').attr("selected", "selected");
+                        $("#guess_code3").html(select)
+                        $('#guess_code3 option[value="0"]').attr("selected", "selected");
+                        $("#guess_code").addClass("has-options" + state_team)
 
                     if m[state_team]["guess"+me.team].finished
                         $("#form-select-guess").hide()
@@ -557,6 +559,8 @@ jQuery ->
                                                state_teamstr + " code.")
 
             if (game.state == GAME_ENCRYPT)
+                $("#guess_code").removeClass("has-options0")
+                $("#guess_code").removeClass("has-options1")
                 if me.spy
                     if not m[me.team].message.finished
                         $("#form-give-clue").show()

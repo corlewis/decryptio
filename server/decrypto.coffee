@@ -13,7 +13,7 @@ zip = () ->
   for i in [0...length]
     arr[i] for arr in arguments
 
-VERSION = 1
+VERSION = 2
 
 
 send_game_list = () ->
