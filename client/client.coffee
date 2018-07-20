@@ -440,22 +440,24 @@ jQuery ->
                             .addClass("list-group clues")
                         for clue, clue_index in list_m[i].message.clues
                             li = $("<li>")
-                                .addClass("list-group-item")
-                                .text(clue_index + 1 + ": " + clue)
+                                .addClass("list-group-item clearfix")
+                                .append($('<span>')
+                                    .css('width', '70%').css('float', 'left')
+                                    .text(clue_index + 1 + ": " + clue))
                             if list_m[i].guess0.finished && list_m[i].guess1.finished
-                                li.append($('<span>')
-                                  .append(codes[i][clue_index])
-                                  .addClass("pull-right " + team_to_class(i)))
-                                li.append($('<span>').append("&nbsp;|&nbsp;")
-                                  .addClass("pull-right").css('color', 'black'))
-                                li.append($('<span>')
-                                  .append(guess_to_str(list_m[i].guess1.code[clue_index]))
-                                  .addClass("pull-right " + team_to_class(TEAM_BLUE)))
-                                li.append($('<span>').append("&nbsp;|&nbsp;")
-                                  .addClass("pull-right").css('color', 'black'))
-                                li.append($('<span>')
-                                  .append(guess_to_str(list_m[i].guess0.code[clue_index]))
-                                  .addClass("pull-right " + team_to_class(TEAM_RED)))
+                                li.append($('<span>').addClass("pull-right")
+                                      .append($('<span>').addClass("noteam")
+                                          .text(codes[i][clue_index]))
+                                      .append($('<span>').addClass("noteam")
+                                          .append("&nbsp;|&nbsp;"))
+                                      .append($('<span>')
+                                          .addClass(team_to_class(TEAM_BLUE))
+                                          .append(guess_to_str(list_m[i].guess1.code[clue_index])))
+                                      .append($('<span>').addClass("noteam")
+                                          .append("&nbsp;|&nbsp;"))
+                                      .append($('<span>')
+                                          .addClass(team_to_class(TEAM_RED))
+                                          .append(guess_to_str(list_m[i].guess0.code[clue_index]))))
                             clues.append(li)
 
                         li = $("<li>")
@@ -475,36 +477,34 @@ jQuery ->
             $("#used_clues").empty()
             #Draw given clues for each keyword
             for i in TEAMS
-                words = $("<ul>").addClass("list-group")
+                words = $("<ul>").addClass("list-group words")
                 for keyword in [1..game.options.num_words]
-                    word_clues = $("<ul>").addClass("list-group used_clues")
+                    word_clues = $("<ul>").addClass("list-group wordlist")
                     for code, round in game.codes
                         for keyword2, code_index in code[i]
                             clue = game.messages[round][i].message.clues[code_index]
                             if keyword == keyword2 && clue != "<Turn Timeout>"
                                 li = $("<li>")
-                                    .addClass("list-group-item")
+                                    .addClass("list-group-item wordlist")
                                     .text(clue)
-                                li.append($('<span>')
-                                  .text(game.messages[round][i].spy)
-                                  .addClass("pull-right " + team_to_class(i)))
                                 word_clues.append(li)
 
                     li = $("<li>")
                         .addClass("list-group-item")
                         .text("Keyword " + keyword)
-                        .prepend($('<span>').addClass("caret-right").html("&#9658"))
-                        .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
-                        .append(word_clues.hide())
-                    li.on 'click', (e) ->
-                        $('.used_clues', $(e.currentTarget)).toggle()
-                        $('.caret-right', $(e.currentTarget)).toggle()
-                        $('.caret-down', $(e.currentTarget)).toggle()
+                        .append(word_clues)
                     words.append(li)
 
-                li = $("<li>").addClass("list-group-item " + team_to_class(i))
-                              .text(team_to_str(i) + " team's clues")
-                              .append(words)
+                li = $("<li>")
+                    .addClass("list-group-item " + team_to_class(i))
+                    .text(team_to_str(i) + " team's clues")
+                    .prepend($('<span>').addClass("caret-right").html("&#9658"))
+                    .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+                    .append(words.hide())
+                li.on 'click', (e) ->
+                    $('.words', $(e.currentTarget)).toggle()
+                    $('.caret-right', $(e.currentTarget)).toggle()
+                    $('.caret-down', $(e.currentTarget)).toggle()
                 $("#used_clues").append(li)
 
             teamstr = team_to_str me.team
@@ -565,6 +565,7 @@ jQuery ->
                 if me.spy
                     if not m[me.team].message.finished
                         $("#form-give-clue").show()
+                        $("#clue_entry").show()
                         $("#gamemessage").html("You are the " + teamstr + " leader. Enter your clues.\n The code you are encrypting is " + game.current_code)
                     else if not m[other_team me.team].message.finished
                         $("#gamemessage").html("You are the " + teamstr +
@@ -646,7 +647,7 @@ jQuery ->
             clues : words.slice()
 
         if words.length = 3 && words.every((x) -> x.length > 0)
-            $("#clue_entry").hide()
+            $("#form-give-clue").hide()
             $("#warning").empty()
             socket.emit('give_clue', clue)
         else

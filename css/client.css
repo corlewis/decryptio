@@ -44,7 +44,7 @@ a {
 }
 
 .noteam {
-    color: grey;
+    color: black;
 }
 
 .blackteam {
@@ -233,4 +233,10 @@ body.dragging, body.dragging * {
 .flex-container {
   display: flex;
   justify-content: space-around;
+}
+
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
 }
