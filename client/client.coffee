@@ -444,7 +444,7 @@ jQuery ->
                 first = true
                 for list_m, round_index in game.messages.slice().reverse()
                     round = game.messages.length - round_index
-                    codes = game.codes[round - 1]
+                    both_codes = game.codes[round - 1]
                     if list_m[i].message.finished && list_m[other_team i].message.finished
                         clues = $("<ul>")
                             .addClass("list-group clues")
@@ -467,7 +467,7 @@ jQuery ->
                                       .append($('<span>').addClass("noteam")
                                           .append("&nbsp;|&nbsp;"))
                                       .append($('<span>').addClass("noteam")
-                                          .text(codes[i][clue_index])))
+                                          .text(both_codes[i][clue_index])))
                             clues.append(li)
 
                         li = $("<li>")

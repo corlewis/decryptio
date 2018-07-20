@@ -89,84 +89,94 @@ displayGame = (game) ->
 
     messages = zip(game.messages0, game.messages1)
     codes = zip(game.codes0, game.codes1)
-    $("#clues").empty()
-    #Draw the list of messages
-    for list_m, round_index in messages
-        round = round_index + 1
-        code = codes[round_index]
-        for i in TEAMS
+    for i in TEAMS
+        if i == TEAM_RED
+            id_sfx = "_cur"
+        else
+            id_sfx = "_other"
+        #Draw the list of messages
+        $("#clues" + id_sfx).empty()
+        first = true
+        for list_m, round_index in messages
+            round = round_index + 1
+            both_codes = codes[round_index]
             if list_m[i].message.finished && list_m[other_team i].message.finished
                 clues = $("<ul>")
-                    .attr("id", "clues" + round + i)
                     .addClass("list-group clues")
                 for clue, clue_index in list_m[i].message.clues
                     li = $("<li>")
-                        .addClass("list-group-item")
-                        .text(clue_index + 1 + ": " + clue)
+                        .addClass("list-group-item clearfix")
+                        .append($('<span>')
+                            .css('width', '70%').css('float', 'left')
+                            .text(clue_index + 1 + ": " + clue))
                     if list_m[i].guess0.finished && list_m[i].guess1.finished
-                        li.append($('<span>')
-                          .append(code[i][clue_index])
-                          .addClass("pull-right " + team_to_class(i)))
-                        li.append($('<span>').append("&nbsp;|&nbsp;")
-                          .addClass("pull-right").css('color', 'black'))
-                        li.append($('<span>')
-                          .append(guess_to_str(list_m[i].guess1.code[clue_index]))
-                          .addClass("pull-right " + team_to_class(TEAM_BLUE)))
-                        li.append($('<span>').append("&nbsp;|&nbsp;")
-                          .addClass("pull-right").css('color', 'black'))
-                        li.append($('<span>')
-                          .append(guess_to_str(list_m[i].guess0.code[clue_index]))
-                          .addClass("pull-right " + team_to_class(TEAM_RED)))
+                        li.append($('<span>').addClass("pull-right")
+                              .append($('<span>')
+                                  .addClass(team_to_class(TEAM_RED))
+                                  .append(guess_to_str(list_m[i].guess0.code[clue_index])))
+                              .append($('<span>').addClass("noteam")
+                                  .append("&nbsp;|&nbsp;"))
+                              .append($('<span>')
+                                  .addClass(team_to_class(TEAM_BLUE))
+                                  .append(guess_to_str(list_m[i].guess1.code[clue_index])))
+                              .append($('<span>').addClass("noteam")
+                                  .append("&nbsp;|&nbsp;"))
+                              .append($('<span>').addClass("noteam")
+                                  .text(both_codes[i][clue_index])))
                     clues.append(li)
 
                 li = $("<li>")
-                    .addClass("list-group-item")
+                    .addClass("list-group-item " + team_to_class(i))
                     .text("Round " + round + ": " + list_m[i].spy)
                     .prepend($('<span>').addClass("caret-right").html("&#9658"))
                     .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
                     .append(clues.hide())
-                li.addClass(team_to_class(i))
-                li.on 'click', (e) ->
-                    $('.clues', $(e.currentTarget)).toggle()
-                    $('.caret-right', $(e.currentTarget)).toggle()
-                    $('.caret-down', $(e.currentTarget)).toggle()
+                if first
+                    li.attr("id", "clues0" + id_sfx)
+                    first = false
+                li.on 'click', (e) -> toggle_list('clues', $(e.currentTarget))
+                $("#clues" + id_sfx).append(li)
 
-                $("#clues").append(li)
-
-    $("#used_clues").empty()
-    #Draw given clues for each keyword
-    for i in TEAMS
-        words = $("<ul>").addClass("list-group")
+        #Draw given clues for each keyword
+        $("#used_clues" + id_sfx).empty()
+        words = $("<ul>")
+            .attr("id", "used_clues_list" + id_sfx)
+            .addClass("list-group words")
         for keyword in [1..game.gameOptions.num_words]
-            word_clues = $("<ul>").addClass("list-group used_clues")
+            word_clues = $("<ul>").addClass("list-group wordlist")
             for code, round in codes
                 for keyword2, code_index in code[i]
                     clue = messages[round][i].message.clues[code_index]
                     if keyword == keyword2 && clue != "<Turn Timeout>"
                         li = $("<li>")
-                            .addClass("list-group-item")
+                            .addClass("list-group-item wordlist")
                             .text(clue)
-                        li.append($('<span>')
-                          .text(messages[round][i].spy)
-                          .addClass("pull-right " + team_to_class(i)))
                         word_clues.append(li)
 
             li = $("<li>")
                 .addClass("list-group-item")
-                .text("Keyword " + keyword + ": " + game.keywords[i][keyword - 1])
-                .prepend($('<span>').addClass("caret-right").html("&#9658"))
-                .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
-                .append(word_clues.hide())
-            li.on 'click', (e) ->
-                $('.used_clues', $(e.currentTarget)).toggle()
-                $('.caret-right', $(e.currentTarget)).toggle()
-                $('.caret-down', $(e.currentTarget)).toggle()
+                .text("Keyword " + keyword + ":")
+                .append(word_clues)
             words.append(li)
 
-        li = $("<li>").addClass("list-group-item " + team_to_class(i))
-                      .text(team_to_str(i) + " team's clues")
-                      .append(words)
-        $("#used_clues").append(li)
+        li = $("<li>")
+            .addClass("list-group-item " + team_to_class(i))
+            .text(team_to_str(i) + " team's clues")
+            .prepend($('<span>').addClass("caret-right").html("&#9658"))
+            .prepend($('<span>').addClass("caret-down").html("&#9660").css({"display": "none"}))
+            .append(words.hide())
+        li.on 'click', (e) -> toggle_list('words', $(e.currentTarget))
+        $("#used_clues" + id_sfx).append(li)
+
+#    toggle_list('clues', "#clues0_cur")
+#    toggle_list('clues', "#clues0_other")
+    toggle_list('words', "#used_clues_cur")
+    toggle_list('words', "#used_clues_other")
+
+toggle_list = (class_str, target) ->
+        $('.' + class_str, target).toggle()
+        $('.caret-right', target).toggle()
+        $('.caret-down', target).toggle()
 
 kind_to_class = (kind) ->
         if kind == TEAM_RED
