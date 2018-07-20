@@ -5,6 +5,7 @@ VERSION = 2
 timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
+time_limit = 0
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
@@ -163,10 +164,10 @@ jQuery ->
         if seconds < 10
             seconds = "0" + seconds
 
-        if can_end_turn
+        if time_limit > 0
             $("#timeleft").text("Time left: " + neg + minutes + ":" + seconds)
-            if timeleft < 0
-                $("#force_end").show()
+        if can_end_turn && timeleft < 0
+            $("#force_end").show()
 
     socket.on 'teaminfo', (game) ->
        if game.state != GAME_PREGAME
@@ -392,6 +393,7 @@ jQuery ->
 
             m = game.messages[game.messages.length - 1]
             force_end_state = game.state
+            time_limit = game.timeLimit
             if game.state == GAME_ENCRYPT
                 can_end_turn = game.timeLimit > 0 && m[me.team].message.finished &&
                          not m[other_team me.team].message.finished
