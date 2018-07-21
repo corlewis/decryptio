@@ -444,16 +444,6 @@ jQuery ->
                              .html("&#x2714: " + game.score[TEAM_BLUE].intercepts + "/2 " +
                                    "&#x2718: " + game.score[TEAM_BLUE].miscommunications + "/2")
 
-            #Draw the list of keywords
-            $("#keywords").empty().addClass("wordlist")
-            for w, i in game.keywords
-                li = $("<li>")
-                    .addClass("list-group-item")
-                    .addClass("wordlist")
-                    .text((i+1) + ": " + w)
-
-                $("#keywords").append(li)
-
             if game.state == GAME_ENCRYPT
                 cur_team = me.team
             else
@@ -524,8 +514,10 @@ jQuery ->
 
                     li = $("<li>")
                         .addClass("list-group-item")
-                        .text("Keyword " + keyword + ":")
-                        .append(word_clues)
+                        .text("Keyword " + keyword + ": ")
+                    if i == me.team
+                        li.append($('<span>').text(game.keywords[keyword - 1]))
+                    li.append(word_clues)
                     words.append(li)
 
                 li = $("<li>")

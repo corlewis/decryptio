@@ -155,7 +155,7 @@ displayGame = (game) ->
 
             li = $("<li>")
                 .addClass("list-group-item")
-                .text("Keyword " + keyword + ":")
+                .text("Keyword " + keyword + ": " + game.keywords[i][keyword - 1])
                 .append(word_clues)
             words.append(li)
 
