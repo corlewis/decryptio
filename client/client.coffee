@@ -532,20 +532,25 @@ jQuery ->
             teamstr = team_to_str me.team
             $("#form-select-guess").hide()
             $("#form-give-clue").hide()
+            $("#current_clues").empty().hide()
             if game.timeLimit > 0
                 $("#timeleft").show()
             else 
                 $("#timeleft").hide()
-            toggle_list('clues', "#clues0_cur")
             toggle_list('clues', "#clues0_other")
             toggle_list('words', "#used_clues_cur")
 
             if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
-                $('.caret-right', "#0" + state_team).hide()
-                $('.caret-down', "#0" + state_team).show()
-                if not me.spy || me.team != state_team
+                #Draw the current clues
+                $("#current_clues").show()
+                for clue, clue_index in m[state_team].message.clues
+                    li = $("<li>")
+                        .addClass("list-group-item " + team_to_class(state_team))
+                        .text(clue_index + 1 + ": " + clue)
+                        $("#current_clues").append(li)
+                if not (me.spy && me.team == state_team)
                     if not $("#guess_code").hasClass("has-options" + state_team)
                         select = ''
                         for i in [1..game.options.num_words]
@@ -583,6 +588,7 @@ jQuery ->
                                                state_teamstr + " code.")
 
             if (game.state == GAME_ENCRYPT)
+                toggle_list('clues', "#clues0_cur")
                 $("#guess_code").removeClass("has-options0")
                 $("#guess_code").removeClass("has-options1")
                 if me.spy
