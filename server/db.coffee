@@ -240,7 +240,6 @@ gameSchema.methods.reset_timer = (time_limit) ->
 gameSchema.methods.start_game = (teams, is_coop) ->
     this.state = GAME_ENCRYPT
     this.round = 0
-    this.timeLimit = 0
     order = [0,0]
     spy = [-1, -1]
 
@@ -269,6 +268,7 @@ gameSchema.methods.start_game = (teams, is_coop) ->
     fake_code = Array(this.gameOptions.code_length).fill(-1)
     for i in TEAMS
         this.make_guess(i, fake_code, other_team i)
+    this.timeLimit = 0
 
 gameSchema.methods.make_guess = (state_team, code, p_team) ->
     round = this.round - 1
