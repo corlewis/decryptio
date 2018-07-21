@@ -242,20 +242,23 @@ gameSchema.methods.start_game = (teams, is_coop) ->
     this.round = 0
     this.timeLimit = 0
     order = [0,0]
+    spy = [-1, -1]
 
     for p in this.players
         p.team = teams[p.id].team
         p.order = order[p.team]
         order[p.team] += 1
+        if teams[p.id].spy
+            spy[p.team] = p.order
     for i in TEAMS
         this.teamLength[i] = order[i]
     
     #Sort by order
     this.players.sort((a, b) -> a.team - b.team or a.order - b.order)
 
-    spy = []
     for i in TEAMS
-        spy[i] = Math.floor Math.random() * this.teamLength[i]
+        if spy[i] == -1
+            spy[i] = Math.floor Math.random() * this.teamLength[i]
     for p in this.players
         if p.order == spy[p.team]
            this.currentSpy[p.team] = p.id

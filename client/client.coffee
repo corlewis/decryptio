@@ -282,15 +282,25 @@ jQuery ->
                     li.removeClass("redteam").addClass("blueteam")
                 li.find("input").attr("team",team)
 
+            set_spy = (li,is_spy) ->
+               if is_spy
+                   li.addClass("spy")
+                   li.find("input").attr("spy","true")
+               else
+                   li.removeClass("spy")
+                   li.find("input").attr("spy","false")
+
             emit_teams = () ->
                 teams = {}
                 players = $("#gameinfo li").each () ->
                     input = $(this).find("input")
                     player_id = input.attr("value")
                     team = parseInt(input.attr("team"),10)
+                    spy = input.attr("spy") == "true"
 
                     teams[player_id] = 
                         team : team
+                        spy : spy
 
                 socket.emit('teaminfo', teams)
                         
@@ -311,6 +321,20 @@ jQuery ->
 
 
                 if ishost then do (li, player_id) ->
+                    li.on 'click', (e) ->
+                         if not (li.is(e.target))
+                             return
+                         if player_id.attr("spy") == "true"
+                             set_spy(li, false)
+                         else
+                             spies = 0
+                             $("#gameinfo li").each () ->
+                                 if $(this).find("input").attr("spy") == "true"
+                                     spies += 1
+                             if spies < 2
+                                 set_spy(li, true)
+                         emit_teams()
+
                     red_btn = $("<button>")
                         .addClass("pull-right")
                         .addClass("btn")
@@ -619,8 +643,10 @@ jQuery ->
         for p, i in players
             input = $("#" + p.id + " input")[0]
             player_id = $(input).attr("value")
+            spy = $(input).attr("spy") == "true"
             team = parseInt($(input).attr("team"),10)
             entry =
+                spy : spy
                 team : team
             if team == TEAM_RED
                 red_team += 1
