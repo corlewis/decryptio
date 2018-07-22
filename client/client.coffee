@@ -6,6 +6,7 @@ timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
 time_limit = 0
+code_length = 3
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
@@ -418,6 +419,7 @@ jQuery ->
             m = game.messages[game.messages.length - 1]
             force_end_state = game.state
             time_limit = game.timeLimit
+            code_length = game.options.code_length
             if game.state == GAME_ENCRYPT
                 can_end_turn = game.timeLimit > 0 && m[me.team].message.finished &&
                          not m[other_team me.team].message.finished
@@ -541,6 +543,7 @@ jQuery ->
             toggle_list('words', "#used_clues_cur")
 
             if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
+                $("#clue_entry").removeClass("has-options")
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
                 #Draw the current clues
@@ -552,15 +555,13 @@ jQuery ->
                         $("#current_clues").append(li)
                 if not (me.spy && me.team == state_team)
                     if not $("#guess_code").hasClass("has-options" + state_team)
+                        $("#guess_code").empty()
                         select = ''
                         for i in [1..game.options.num_words]
                             select += '<option value=' + i + '>' + i + '</option>'
-                        $("#guess_code1").html(select)
-                        $('#guess_code1 option[value="0"]').attr("selected", "selected");
-                        $("#guess_code2").html(select)
-                        $('#guess_code2 option[value="0"]').attr("selected", "selected");
-                        $("#guess_code3").html(select)
-                        $('#guess_code3 option[value="0"]').attr("selected", "selected");
+                        for i in [1..code_length]
+                            li = ($('<select>').attr('id', 'guess_code' + i).html(select))
+                            $("#guess_code").append(li)
                         $("#guess_code").addClass("has-options" + state_team)
 
                     if m[state_team]["guess"+me.team].finished
@@ -589,12 +590,22 @@ jQuery ->
 
             if (game.state == GAME_ENCRYPT)
                 toggle_list('clues', "#clues0_cur")
-                $("#guess_code").removeClass("has-options0")
-                $("#guess_code").removeClass("has-options1")
+                $("#guess_code").removeClass("has-options0 has-options1")
                 if me.spy
                     if not m[me.team].message.finished
                         $("#form-give-clue").show()
                         $("#clue_entry").show()
+                        if not $("#clue_entry").hasClass("has-options")
+                            $("#clue_entry").empty()
+                            for i in [1..code_length]
+                                li = ($('<input>').attr('id', 'clue_entry' + i)
+                                    .attr('type', 'text').addClass("form-control clue-entry")
+                                    .attr('maxlength', 60).attr('placeholder', 'Clue ' + i)
+                                    .html(select))
+                                $("#clue_entry").append(li)
+                            $("#clue_entry").addClass("has-options")
+                        $("#clue_entry1").focus()
+                        $("#clue_entry1").prop('autofocus')
                         $("#gamemessage").html("You are the " + teamstr + " leader. Enter your clues.\n The code you are encrypting is " + game.current_code)
                     else if not m[other_team me.team].message.finished
                         $("#gamemessage").html("You are the " + teamstr +
@@ -670,14 +681,14 @@ jQuery ->
     $("#form-give-clue").on 'submit', (e) ->
         e.preventDefault()
         words = []
-        for i in [1..3]#game.options.code_length]
+        for i in [1..code_length]
             word = $("#clue_entry" + i).val()
             words.push word
 
         clue =
             clues : words.slice()
 
-        if words.length = 3 && words.every((x) -> x.length > 0)
+        if words.length == code_length && words.every((x) -> x.length > 0)
             $("#form-give-clue").hide()
             $("#warning").empty()
             socket.emit('give_clue', clue)
@@ -687,14 +698,14 @@ jQuery ->
     $("#form-select-guess").on 'submit', (e) ->
         e.preventDefault()
         code = []
-        for i in [1..3]#game.options.code_length]
+        for i in [1..code_length]
             word = $("#guess_code" + i).val()
             code.push word
 
         guess =
             code : code.slice()
 
-        if code.length = 3 && code.every((x) -> x > 0)
+        if code.length = code_length && code.every((x) -> x > 0)
             $("#form-select-guess").hide()
             $("#warning").empty()
             socket.emit('make_guess', guess)

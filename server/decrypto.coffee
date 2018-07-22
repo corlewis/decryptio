@@ -451,10 +451,14 @@ io.on 'connection', (socket) ->
         return if not player
         Game.findById player.currentGame, (err, game) ->
             return if err || not game
+
             teams = data.teams
             is_coop = data.is_coop 
             game.gameOptions.num_words = data.options.num_words
-            game.gameOptions.code_length = data.options.code_length
+            if data.options.code_length > data.options.num_words
+                game.gameOptions.code_length = data.options.num_words
+            else
+                game.gameOptions.code_length = data.options.code_length
             game.gameOptions.encrypt_time_limit = data.options.encrypt_time_limit
             game.gameOptions.decrypt_time_limit = data.options.decrypt_time_limit
             game.gameOptions.word_set = data.options.word_set

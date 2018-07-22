@@ -240,3 +240,8 @@ body.dragging, body.dragging * {
     clear: both;
     display: table;
 }
+
+.clue-entry {
+    width: 70%;
+    display: inline-block;
+}
