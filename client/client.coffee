@@ -546,6 +546,8 @@ jQuery ->
                 $("#clue_entry").removeClass("has-options")
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
+                state_teamstr_span = $('<span>')
+                    .addClass(team_to_class(state_team)).text(state_teamstr + " code.")
                 #Draw the current clues
                 $("#current_clues").show()
                 for clue, clue_index in m[state_team].message.clues
@@ -567,26 +569,23 @@ jQuery ->
                     if m[state_team]["guess"+me.team].finished
                         $("#form-select-guess").hide()
                         $("#gamemessage").html("You are on team " + teamstr +
-                                               ". Waiting for the other team to guess the " +
-                                               state_teamstr + " code.")
+                                               ". Waiting for the other team to guess the ")
+                                         .append(state_teamstr_span)
                     else
                         $("#form-select-guess").show()
-                        $("#gamemessage").html("You are on team " + teamstr + ". Try to guess the " +
-                                                state_teamstr + " code.")
+                        $("#gamemessage").html("You are on team " + teamstr + ". Try to guess the ")
+                                         .append(state_teamstr_span)
                 else
                     if not m[state_team]["guess"+me.team].finished &&
                        not m[state_team]["guess"+other_team me.team].finished
-                        $("#gamemessage").html("You are the " + teamstr +
-                                               " spy. Waiting for teams to guess the " +
-                                               state_teamstr + " code.")
+                        teams_message = "both teams"
                     else if not m[state_team]["guess"+me.team].finished
-                        $("#gamemessage").html("You are the " + teamstr +
-                                               " spy. Waiting for your team to guess the " +
-                                               state_teamstr + " code.")
+                        teams_message = "your team"
                     else if not m[state_team]["guess"+other_team me.team].finished
-                        $("#gamemessage").html("You are the " + teamstr +
-                                               " spy. Waiting for their team to guess the " +
-                                               state_teamstr + " code.")
+                        teams_message = "their team"
+                    $("#gamemessage").html("You are the " + teamstr +
+                                           " spy. Waiting for " + teams_message + " to guess the ")
+                                     .append(state_teamstr_span)
 
             if (game.state == GAME_ENCRYPT)
                 toggle_list('clues', "#clues0_cur")
