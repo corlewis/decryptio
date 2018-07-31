@@ -62,7 +62,7 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
             id          : p.id
             name        : p.name
             order       : p.order
-            spy         : p.id.equals(game.currentSpy[p.team])
+            spy         : p.team != TEAM_NONE && p.id.equals(game.currentSpy[p.team])
             team        : p.team
 
     data.players = players

@@ -183,11 +183,11 @@ gameSchema.methods.setup_words = () ->
 gameSchema.methods.set_next_spies = () ->
     next = [-1, -1]
     for p in this.players
-        if p.id.equals(this.currentSpy[p.team])
+        if p.team != TEAM_NONE && p.id.equals(this.currentSpy[p.team])
             next[p.team] = (p.order + 1) % this.teamLength[p.team]
 
     for p in this.players
-        if p.order == next[p.team]
+        if p.team != TEAM_NONE && p.order == next[p.team]
             this.currentSpy[p.team] = p.id
 
 gameSchema.methods.create_next_message = () ->
