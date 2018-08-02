@@ -13,6 +13,7 @@ GAME_PREGAME       = 1
 GAME_ENCRYPT       = 2
 GAME_DECRYPT_RED   = 3
 GAME_DECRYPT_BLUE  = 4
+GAME_PRE_FINISHED  = 8
 GAME_FINISHED      = 9
 
 TEAM_RED           = 0
@@ -131,6 +132,7 @@ gameSchema = new mongoose.Schema
     teamLength      : {0: Number, 1: Number}
     keywords        : {0: [String], 1: [String]}
     winningTeam     : {type: Number, default: TEAM_NONE}
+    tiedFinish      : {type: [[String]], default: [[], []]}
     isCoop          : {type: Boolean, default: false}
     reconnect_vote  : [Number]
     reconnect_user  : String
@@ -223,7 +225,8 @@ gameSchema.methods.check_for_game_end = () ->
         this.winningTeam = TEAM_BLUE
 
     if this.round >= 8 || red_win || blue_win
-        this.state = GAME_FINISHED
+        this.state = GAME_PRE_FINISHED
+        this.timeLimit = 0
         return true
     else
         return false

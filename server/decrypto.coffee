@@ -43,6 +43,7 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
         round           : game.round
         timeLimit       : game.timeLimit
         currentSpy      : [ObjectId]
+        winningTeam     : game.winningTeam
         timeLeft        : game.time_left()
         isCoop          : game.isCoop
         reconnect_user  : game.reconnect_user
@@ -66,6 +67,10 @@ send_game_info = (game, to = undefined, tagged = 'gameinfo') ->
             team        : p.team
 
     data.players = players
+
+    data.tiedFinish = []
+    for i in TEAMS
+        data.tiedFinish.push (game.tiedFinish[i].length > 0)
 
     #Hide unfinished messages
     messages = []
@@ -597,6 +602,32 @@ io.on 'connection', (socket) ->
 
             game.save()
             send_game_info(game)
+
+
+    socket.on 'guess_words', (data) ->
+        player = socket.player
+        return if not player
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            p = game.get_player(player._id)
+            team = p.team
+            if game.state != GAME_PRE_FINISHED || game.tiedFinish[team].length > 0 ||
+               data.length != game.gameOptions.num_words
+                return
+
+            for word in data
+                game.tiedFinish[team].push word
+
+            if game.tiedFinish[other_team team].length > 0
+                game.state = GAME_FINISHED
+            else
+                game.reset_timer(game.gameOptions.encrypt_time_limit)
+
+            game.save((err) =>
+                if err then console.log(err))
+            send_game_info(game)
+
 
     socket.on 'leavegame', () ->
         socket.join('lobby')

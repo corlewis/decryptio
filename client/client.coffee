@@ -7,12 +7,14 @@ can_end_turn = false
 force_end_state = GAME_LOBBY
 time_limit = 0
 code_length = 3
+num_words = 4
 
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
 GAME_ENCRYPT       = 2
 GAME_DECRYPT_RED   = 3
 GAME_DECRYPT_BLUE  = 4
+GAME_PRE_FINISHED  = 8
 GAME_FINISHED      = 9
 
 TEAM_RED           = 0
@@ -249,14 +251,9 @@ jQuery ->
             window.have_game_info = false
 
         else if game.state == GAME_FINISHED
-            if game.winningTeam == TEAM_NONE
-                #FIXME
-                socket.emit 'leavegame'
-                window.location = '/game?id=' + game.id
-            else
-                socket.emit 'leavegame'
-                window.location = '/game?id=' + game.id
-        
+            socket.emit 'leavegame'
+            window.location = '/game?id=' + game.id
+
         else if game.state == GAME_PREGAME
             $("#pregame").show()
             $("#btn_ready").hide()
@@ -420,6 +417,7 @@ jQuery ->
             force_end_state = game.state
             time_limit = game.timeLimit
             code_length = game.options.code_length
+            num_words = game.options.num_words
             can_end_turn = game.timeLimit > 0 && me.team != TEAM_NONE
             if game.state == GAME_ENCRYPT
                 can_end_turn = can_end_turn && m[me.team].message.finished &&
@@ -430,6 +428,8 @@ jQuery ->
             else if game.state == GAME_DECRYPT_BLUE
                 can_end_turn = can_end_turn && m[TEAM_BLUE]["guess"+me.team].finished &&
                          not m[TEAM_BLUE]["guess"+other_team me.team].finished
+            else if game.state == GAME_PRE_FINISHED
+                can_end_turn = can_end_turn && game.tiedFinish[me.team]
  
             if not timer_handle && game.timeLimit > 0
                timer_handle = setInterval ->
@@ -449,6 +449,8 @@ jQuery ->
 
             if game.state == GAME_ENCRYPT
                 cur_team = if me.team == TEAM_NONE then TEAM_RED else me.team
+            else if game.state == GAME_PRE_FINISHED
+                cur_team = if me.team == TEAM_NONE then TEAM_RED else other_team me.team
             else
                 cur_team = game.state - GAME_DECRYPT_RED
             for i in TEAMS
@@ -539,6 +541,7 @@ jQuery ->
             spystr = "You are the " + (team_to_str me.team) + " spy."
             $("#form-select-guess").hide()
             $("#form-give-clue").hide()
+            $("#form-guess-words").hide()
             $("#current_clues").empty().hide()
             if game.timeLimit > 0
                 $("#timeleft").show()
@@ -620,6 +623,33 @@ jQuery ->
                         $("#gamemessage").html(spystr + " Waiting for the other spy.")
                 else
                     $("#gamemessage").html(teamstr + " Waiting for the clues.")
+
+            if game.state == GAME_PRE_FINISHED
+                $("#gamemessage").html(teamstr + "<br />")
+                if game.winningTeam == TEAM_NONE
+                    $("#gamemessage").append("Teams are tied! The team that can best guess their opponents keywords wins!")
+                else
+                    if game.winningTeam == TEAM_RED
+                        winstr = $('<span>').addClass("redteam")
+                            .append("Game Over. Red team wins!")
+                    else
+                        winstr = $('<span>').addClass("blueteam")
+                           .text("Game Over. Blue team wins!")
+                    $("#gamemessage").append(winstr)
+                        .append("<br />Both teams can now guess the opponents keywords.")
+                if me.team != TEAM_NONE && not game.tiedFinish[me.team]
+                    $("#form-guess-words").show()
+                    if not $("#words_entry").hasClass("has-options")
+                        $("#words_entry").empty()
+                        for i in [1..num_words]
+                            li = ($('<input>').attr('id', 'words_entry' + i)
+                                .attr('type', 'text').addClass("form-control clue-entry")
+                                .attr('maxlength', 60).attr('placeholder', 'Word ' + i)
+                                .html(select))
+                            $("#words_entry").append(li)
+                        $("#words_entry").addClass("has-options")
+                    $("#words_entry1").focus()
+                    $("#words_entry1").prop('autofocus')
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -719,6 +749,22 @@ jQuery ->
             socket.emit('make_guess', guess)
         else
             $("#warning").html("You must make a guess!")
+
+    $("#btn_guess_words").on 'click', (e) ->
+        e.preventDefault()
+        words = []
+        for i in [1..num_words]
+            word = $("#words_entry" + i).val()
+            words.push word
+
+        if words.length == num_words && words.some((x) -> x.length > 0)
+            socket.emit('guess_words', words.slice())
+        else
+            $("#warning").html("You must guess at least one valid word!")
+
+    $("#btn_guess_words_skip").on 'click', (e) ->
+        words = Array(num_words).fill("")
+        socket.emit('guess_words', words.slice())
 
     $("#btn_force_end").on 'click', (e) ->
         $("#force_end_confirm").show()

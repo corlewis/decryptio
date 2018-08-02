@@ -62,7 +62,6 @@ displayGame = (game) ->
     for p in game.players
         players[p.id] = p
 
-    scorestr = ""
     bluestr = "Game Over. Blue team wins!"
     if game.isCoop
         bluestr = "Game Over. Co-op game lost!"
@@ -77,7 +76,7 @@ displayGame = (game) ->
             .text(bluestr)
     else
         $("#gameover")
-            .text("Teams are tied! The team that can best guess their opponents keywords wins!")
+            .text("Teams are tied! The team that best guessed their opponents keywords wins!")
 
     #Draw the scores
     $("#red_results").empty()
@@ -156,6 +155,9 @@ displayGame = (game) ->
             li = $("<li>")
                 .addClass("list-group-item")
                 .text("Keyword " + keyword + ": " + game.keywords[i][keyword - 1])
+                .append("<br />")
+                .append($('<span>').addClass(team_to_class(other_team i))
+                    .text("Guess: " + game.tiedFinish[other_team i][keyword - 1]))
                 .append(word_clues)
             words.append(li)
 
@@ -168,8 +170,6 @@ displayGame = (game) ->
         li.on 'click', (e) -> toggle_list('words', $(e.currentTarget))
         $("#used_clues" + id_sfx).append(li)
 
-#    toggle_list('clues', "#clues0_cur")
-#    toggle_list('clues', "#clues0_other")
     toggle_list('words', "#used_clues_cur")
     toggle_list('words', "#used_clues_other")
 
