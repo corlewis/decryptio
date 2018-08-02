@@ -726,7 +726,8 @@ jQuery ->
         clue =
             clues : words.slice()
 
-        if words.length == code_length && words.every((x) -> x.length > 0)
+        if words.length == code_length && words.every((x) -> x.length > 0) &&
+           words.every((x) -> is_ascii(x))
             $("#form-give-clue").hide()
             $("#warning").empty()
             socket.emit('give_clue', clue)
@@ -757,7 +758,8 @@ jQuery ->
             word = $("#words_entry" + i).val()
             words.push word
 
-        if words.length == num_words && words.some((x) -> x.length > 0)
+        if words.length == num_words && words.some((x) -> x.length > 0) &&
+           words.every((x) -> is_ascii(x))
             socket.emit('guess_words', words.slice())
         else
             $("#warning").html("You must guess at least one valid word!")
@@ -823,3 +825,6 @@ guess_to_str = (guess) ->
         if guess == -1
             "&nbsp;"
         else guess
+
+is_ascii = (s) ->
+        return /^[ -~]+$/.test(s)
