@@ -242,6 +242,11 @@ body.dragging, body.dragging * {
 }
 
 .clue-entry {
-    width: 70%;
+    width: 90%;
     display: inline-block;
+}
+
+span.cluelist {
+    width:80%;
+    float:left;
 }
