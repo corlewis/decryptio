@@ -472,7 +472,7 @@ jQuery ->
                                 .addClass("list-group-item clearfix")
                                 .append($('<span>')
                                     .css('width', '70%').css('float', 'left')
-                                    .text(clue_index + 1 + ": " + clue))
+                                    .text(clue))
                             if list_m[i].guess0.finished && list_m[i].guess1.finished
                                 li.append($('<span>').addClass("pull-right")
                                       .append($('<span>')
