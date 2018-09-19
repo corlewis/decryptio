@@ -656,6 +656,8 @@ jQuery ->
                         $("#used_clues_cur").addClass("has-options2")
                     $("#words_entry1").focus()
                     $("#words_entry1").prop('autofocus')
+                else
+                    $(".clue-entry", "#used_clues_cur").hide()
 
             #If someone is trying to reconnect show vote
             if game.reconnect_user && game.reconnect_user != ""
@@ -736,6 +738,7 @@ jQuery ->
            words.every((x) -> is_ascii(x))
             $("#form-give-clue").hide()
             $("#warning").empty()
+            $(".clue-entry", "#used_clues_cur").hide()
             socket.emit('give_clue', clue)
         else
             $("#warning").html("You must give valid clues!")
