@@ -709,7 +709,7 @@ duetWords = [
     "SHEET",
     "SHELL",
     "SHERLOCK",
-    "SHERWOOD",
+#    "SHERWOOD",
     "SHOOT",
     "SHORTS",
     "SHOULDER",
