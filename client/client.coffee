@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 2
+VERSION = 3
 timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
@@ -502,8 +502,7 @@ jQuery ->
                         $("#clues" + id_sfx).append(li)
 
                 #Draw given clues for each keyword
-                if not $("#used_clues" + id_sfx).hasClass("has-options") &&
-                   not $("#used_clues" + id_sfx).hasClass("has-options2")
+                if not $("#used_clues" + id_sfx).hasClass("has-options" + game.state)
                     $("#used_clues" + id_sfx).empty()
                     words = $("<ul>")
                         .attr("id", "used_clues_list" + id_sfx)
@@ -552,14 +551,14 @@ jQuery ->
 
             if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
                 toggle_list('clues', "#clues0_cur")
-                $("#used_clues_cur").removeClass("has-options")
+                $("#used_clues_cur").removeClass("has-options" + GAME_ENCRYPT)
                 state_team = game.state - GAME_DECRYPT_RED
                 state_teamstr = team_to_str state_team
                 state_teamstr_span = $('<span>')
                     .addClass(team_to_class(state_team)).text(state_teamstr + " code")
                 #Draw the current clues
                 $("#current_clues").show()
-                if not $("#current_clues").hasClass("has-options" + state_team)
+                if not $("#current_clues").hasClass("drawn" + state_team)
                     $("#current_clues").empty()
                     for clue, clue_index in m[state_team].message.clues
                         li = $("<li>")
@@ -567,8 +566,7 @@ jQuery ->
                             .addClass("list-group-item clearfix " + team_to_class(state_team))
                             .append($('<span>').addClass("cluelist").text(clue))
                             $("#current_clues").append(li)
-                if not (me.spy && me.team == state_team)
-                    if not $("#current_clues").hasClass("has-options" + state_team)
+                    if not (me.spy && me.team == state_team)
                         select = ''
                         for i in [1..game.options.num_words]
                             select += '<option value=' + i + '>' + i + '</option>'
@@ -576,8 +574,9 @@ jQuery ->
                             li = ($('<select>').attr('id', 'guess_code' + i)
                                 .addClass("pull-right guess_code").html(select))
                             $("#curruent_clue" + i).append(li)
-                        $("#current_clues").addClass("has-options" + state_team)
+                    $("#current_clues").addClass("drawn" + state_team)
 
+                if not (me.spy && me.team == state_team)
                     if me.team == TEAM_NONE
                         $(".guess_code", "#current_clues").hide()
                         $("#form-select-guess").hide()
@@ -607,11 +606,11 @@ jQuery ->
                                      .append(state_teamstr_span).append(".")
 
             if (game.state == GAME_ENCRYPT)
-                $("#current_clues").removeClass("has-options0 has-options1")
+                $("#current_clues").removeClass("drawn0 drawn1")
                 if me.spy
                     if not m[me.team].message.finished
                         $("#form-give-clue").show()
-                        if not $("#used_clues_cur").hasClass("has-options")
+                        if not $("#used_clues_cur").hasClass("has-options" + game.state)
                             $(".clue-entry", "#used_clues_cur").empty()
                             for code, code_idx in game.current_code
                                 li = ($('<input>').attr('id', 'clue_entry' + (code_idx + 1))
@@ -620,7 +619,7 @@ jQuery ->
                                     .attr('placeholder', 'Clue ' + (code_idx + 1))
                                     .html(select))
                                 $("#used_clues_cur" + code).append(li)
-                            $("#used_clues_cur").addClass("has-options")
+                            $("#used_clues_cur").addClass("has-options" + game.state)
                         $("#clue_entry1").focus()
                         $("#clue_entry1").prop('autofocus')
                         $("#gamemessage").html(spystr + " Enter your clues.\n The code you are encrypting is " + game.current_code)
@@ -644,7 +643,7 @@ jQuery ->
                         .append("<br />Both teams can now guess the opponents keywords.")
                 if me.team != TEAM_NONE && not game.tiedFinish[me.team]
                     $("#form-guess-words").show()
-                    if not $("#used_clues_cur").hasClass("has-options2")
+                    if not $("#used_clues_cur").hasClass("has-options" + game.state)
                         $(".clue-entry", "#used_clues_cur").empty()
                         for i in [1..num_words]
                             li = ($('<input>').attr('id', 'words_entry' + i)
@@ -653,7 +652,7 @@ jQuery ->
                                 .attr('placeholder', 'Keyword ' + i)
                                 .html(select))
                             $("#used_clues_cur" + i).append(li)
-                        $("#used_clues_cur").addClass("has-options2")
+                        $("#used_clues_cur").addClass("has-options" + game.state)
                     $("#words_entry1").focus()
                     $("#words_entry1").prop('autofocus')
                 else
