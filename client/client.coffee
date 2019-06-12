@@ -139,6 +139,7 @@ jQuery ->
                     .text(g.name)
                     .append($('<span>').addClass("pull-right").text(g.num_players))
                     .click () ->
+                        remove_classes()
                         socket.emit 'joingame', { game_id : g.id }
                 if g.state == GAME_LOBBY
                     $("#newgamelist").append(join_btn)
@@ -677,12 +678,14 @@ jQuery ->
         e.preventDefault()
     
     $("#btn_newgame").on 'click', () ->
+        remove_classes()
         socket.emit 'newgame'
 
     $("#btn_changename").on 'click', () ->
         $("#signin").show()
 
     $("#btn_reconnect").on 'click', () ->
+        remove_classes()
         socket.emit 'reconnecttogame'
 
     $("#btn_ready").on 'click', () ->
@@ -836,3 +839,7 @@ guess_to_str = (guess) ->
 
 is_ascii = (s) ->
         return /^[ -~]+$/.test(s)
+
+remove_classes = () ->
+        $("#used_clues_cur").removeClass("has-options" + GAME_ENCRYPT)
+        $("#current_clues").removeClass("drawn0 drawn1")
