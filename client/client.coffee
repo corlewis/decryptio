@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 3
+VERSION = 4
 timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
@@ -22,8 +22,8 @@ TEAM_BLUE          = 1
 TEAM_NONE          = 2
 TEAMS              = [TEAM_RED, TEAM_BLUE]
 
-DEFAULT_WORDS      = 0
-DUET_WORDS         = 1
+DECRYPTO_WORDS     = 0
+CODENAMES_WORDS    = 1
 ALL_WORDS          = 2
 
 other_team = (team) ->
@@ -379,12 +379,12 @@ jQuery ->
                 $("#opt_code_length").html(select)
                 $('#opt_code_length option[value="3"]').attr("selected", "selected");
 
-                select = '<option value=' + DEFAULT_WORDS + '>Default Words</option>'
-                select += '<option value=' + DUET_WORDS + '>Duet Words</option>'
+                select = '<option value=' + DECRYPTO_WORDS + '>Decrypto Words</option>'
+                select += '<option value=' + CODENAMES_WORDS + '>Codenames Words</option>'
                 select += '<option value=' + ALL_WORDS + '>All Words</option>'
 
                 $("#opt_word_set").html(select)
-                $('#opt_word_set option[value=' + ALL_WORDS + ']').attr("selected", "selected");
+                $('#opt_word_set option[value=' + DECRYPTO_WORDS + ']').attr("selected", "selected");
                 players = $("#gameinfo li")
                 
                 $("#btn_randomize_teams").show()

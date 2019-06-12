@@ -21,8 +21,8 @@ TEAM_BLUE          = 1
 TEAM_NONE          = 2
 TEAMS              = [TEAM_RED, TEAM_BLUE]
 
-DEFAULT_WORDS      = 0
-DUET_WORDS         = 1
+DECRYPTO_WORDS     = 0
+CODENAMES_WORDS    = 1
 ALL_WORDS          = 2
 
 other_team = (team) ->
@@ -102,7 +102,7 @@ gameSchema = new mongoose.Schema
         code_length  : {type: Number, default: 3}
         encrypt_time_limit : {type: Number, default: 0}
         decrypt_time_limit : {type: Number, default: 0}
-        word_set       : {type: Number, default: ALL_WORDS}
+        word_set       : {type: Number, default: DECRYPTO_WORDS}
     }
     players      : [
         id       : {type: ObjectId, ref: 'Player'}
@@ -169,12 +169,12 @@ shuffle = (a) ->
       return a
 
 gameSchema.methods.setup_words = () ->
-    if this.gameOptions.word_set == DEFAULT_WORDS
-        words = shuffle(globalWords)
-    else if this.gameOptions.word_set == DUET_WORDS
-        words = shuffle(duetWords)
-    else
+    if this.gameOptions.word_set == DECRYPTO_WORDS
+        words = shuffle(decryptoWords)
+    else if this.gameOptions.word_set == CODENAMES_WORDS
         words = shuffle(globalWords.concat duetWords)
+    else
+        words = shuffle(removeDuplicates ((decryptoWords.concat globalWords).concat duetWords))
 
     num_words = this.gameOptions.num_words
     for i in TEAMS
@@ -313,3 +313,10 @@ arraysEqual = (a, b) ->
         return false if b[index] isnt valueInA
 
     true
+
+removeDuplicates = (ar) ->
+  if ar.length == 0
+    return []
+  res = {}
+  res[ar[key]] = ar[key] for key in [0..ar.length-1]
+  value for key, value of res
