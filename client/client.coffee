@@ -1,7 +1,7 @@
 Array::sum = () ->
     @reduce (x, y) -> x + y
 
-VERSION = 4
+VERSION = 5
 timer_handle = undefined
 can_end_turn = false
 force_end_state = GAME_LOBBY
@@ -12,8 +12,7 @@ num_words = 4
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
 GAME_ENCRYPT       = 2
-GAME_DECRYPT_RED   = 3
-GAME_DECRYPT_BLUE  = 4
+GAME_DECRYPT       = 3
 GAME_PRE_FINISHED  = 8
 GAME_FINISHED      = 9
 
@@ -423,12 +422,9 @@ jQuery ->
             if game.state == GAME_ENCRYPT
                 can_end_turn = can_end_turn && m[me.team].message.finished &&
                          not m[other_team me.team].message.finished
-            else if game.state == GAME_DECRYPT_RED
-                can_end_turn = can_end_turn && m[TEAM_RED]["guess"+me.team].finished &&
-                         not m[TEAM_RED]["guess"+other_team me.team].finished
-            else if game.state == GAME_DECRYPT_BLUE
-                can_end_turn = can_end_turn && m[TEAM_BLUE]["guess"+me.team].finished &&
-                         not m[TEAM_BLUE]["guess"+other_team me.team].finished
+            else if game.state == GAME_DECRYPT
+                can_end_turn = can_end_turn && finished_guessing(m, me.team) &&
+                     not finished_guessing(m, other_team me.team)
             else if game.state == GAME_PRE_FINISHED
                 can_end_turn = can_end_turn && game.tiedFinish[me.team]
  
@@ -448,12 +444,18 @@ jQuery ->
                              .html("&#x2714: " + game.score[TEAM_BLUE].intercepts + "/2 " +
                                    "&#x2718: " + game.score[TEAM_BLUE].miscommunications + "/2")
 
-            if game.state == GAME_ENCRYPT
-                cur_team = if me.team == TEAM_NONE then TEAM_RED else me.team
+            if me.team == TEAM_NONE
+                cur_team = TEAM_RED
+            else if game.state == GAME_ENCRYPT
+                cur_team = me.team
+            else if game.state == GAME_DECRYPT && not m[TEAM_RED]["guess"+me.team].finished
+                cur_team = TEAM_RED
+            else if game.state == GAME_DECRYPT && not m[TEAM_BLUE]["guess"+me.team].finished
+                cur_team = TEAM_BLUE
             else if game.state == GAME_PRE_FINISHED
-                cur_team = if me.team == TEAM_NONE then TEAM_RED else other_team me.team
+                cur_team = other_team me.team
             else
-                cur_team = game.state - GAME_DECRYPT_RED
+                cur_team = TEAM_RED
             for i in TEAMS
                 if i == cur_team
                     id_sfx = "_cur"
@@ -474,7 +476,7 @@ jQuery ->
                                 .append($('<span>')
                                     .css('width', '70%').css('float', 'left')
                                     .text(clue))
-                            if list_m[i].guess0.finished && list_m[i].guess1.finished
+                            if both_finished_guessing(list_m)
                                 li.append($('<span>').addClass("pull-right")
                                       .append($('<span>')
                                           .addClass(team_to_class(TEAM_RED))
@@ -550,10 +552,10 @@ jQuery ->
             toggle_list('clues', "#clues0_cur")
             toggle_list('clues', "#clues0_other")
 
-            if (game.state == GAME_DECRYPT_RED || game.state == GAME_DECRYPT_BLUE)
+            if game.state == GAME_DECRYPT
                 toggle_list('clues', "#clues0_cur")
                 $("#used_clues_cur").removeClass("has-options" + GAME_ENCRYPT)
-                state_team = game.state - GAME_DECRYPT_RED
+                state_team = cur_team
                 state_teamstr = team_to_str state_team
                 state_teamstr_span = $('<span>')
                     .addClass(team_to_class(state_team)).text(state_teamstr + " code")
@@ -577,34 +579,24 @@ jQuery ->
                             $("#curruent_clue" + i).append(li)
                     $("#current_clues").addClass("drawn" + state_team)
 
-                if not (me.spy && me.team == state_team)
-                    if me.team == TEAM_NONE
-                        $(".guess_code", "#current_clues").hide()
-                        $("#form-select-guess").hide()
-                        $("#gamemessage").html(teamstr + " The ")
-                                        .append(state_teamstr_span)
-                                        .append(" is being guessed.")
-                    else if m[state_team]["guess"+me.team].finished
-                        $(".guess_code", "#current_clues").hide()
-                        $("#form-select-guess").hide()
-                        $("#gamemessage").html(teamstr +
-                                               " Waiting for the other team to guess the ")
-                                        .append(state_teamstr_span).append(".")
-                    else
-                        $("#form-select-guess").show()
-                        $("#gamemessage").html(teamstr + " Try to guess the ")
-                                        .append(state_teamstr_span).append(".")
-                else
-                    if not m[state_team]["guess"+me.team].finished &&
-                       not m[state_team]["guess"+other_team me.team].finished
-                        teams_message = "both teams"
-                    else if not m[state_team]["guess"+me.team].finished
-                        teams_message = "your team"
-                    else if not m[state_team]["guess"+other_team me.team].finished
-                        teams_message = "their team"
+                if me.team == TEAM_NONE
+                    $(".guess_code", "#current_clues").hide()
+                    $("#form-select-guess").hide()
+                    $("#gamemessage").html(teamstr + " The codes are being guessed.")
+                else if m[state_team]["guess"+me.team].finished
+                    $(".guess_code", "#current_clues").hide()
+                    $("#form-select-guess").hide()
+                    $("#gamemessage").html(teamstr +
+                                           " Waiting for the other team to finish guessing.")
+                else if me.spy && me.team == state_team
                     $("#gamemessage").html(spystr +
-                                           " Waiting for " + teams_message + " to guess the ")
+                                           " Waiting for your team to guess the ")
                                      .append(state_teamstr_span).append(".")
+                else
+                    $("#form-select-guess").show()
+                    $("#gamemessage").html(teamstr + " Try to guess the ")
+                                    .append(state_teamstr_span).append(".")
+
 
             if (game.state == GAME_ENCRYPT)
                 $("#current_clues").removeClass("drawn0 drawn1")
@@ -787,7 +779,7 @@ jQuery ->
         $("#force_end").hide()
         if force_end_state == GAME_ENCRYPT
             socket.emit 'force_end_encrypt'
-        else if force_end_state in [GAME_DECRYPT_RED, GAME_DECRYPT_BLUE]
+        else if force_end_state == GAME_DECRYPT
             socket.emit 'force_end_decrypt'
         else if force_end_state == GAME_PRE_FINISHED
             socket.emit 'force_end_guess_words'
@@ -819,29 +811,41 @@ jQuery ->
         $("#login").hide()
 
 toggle_list = (class_str, target) ->
-        $('.' + class_str, target).toggle()
-        $('.caret-right', target).toggle()
-        $('.caret-down', target).toggle()
+    $('.' + class_str, target).toggle()
+    $('.caret-right', target).toggle()
+    $('.caret-down', target).toggle()
 
 kind_to_class = (kind) ->
-        if kind == TEAM_RED
-            "redteam"
-        else if kind == TEAM_BLUE
-            "blueteam"
-        else if kind == TEAM_NONE
-            "noteam"
+    if kind == TEAM_RED
+        "redteam"
+    else if kind == TEAM_BLUE
+        "blueteam"
+    else if kind == TEAM_NONE
+        "noteam"
 
 team_to_class = (team) ->
-        kind_to_class(team)
+    kind_to_class(team)
 
 guess_to_str = (guess) ->
-        if guess == -1
-            "&nbsp;"
-        else guess
+    if guess == -1
+        "&nbsp;"
+    else guess
+
+finished_guessing = (m, team) ->
+    finished = true
+    for i in TEAMS
+        finished = finished && m[i]["guess"+team].finished
+    return finished
+
+both_finished_guessing = (m) ->
+    finished = true
+    for i in TEAMS
+        finished = finished && finished_guessing(m, i)
+    return finished
 
 is_ascii = (s) ->
-        return /^[ -~]+$/.test(s)
+    return /^[ -~]+$/.test(s)
 
 remove_classes = () ->
-        $("#used_clues_cur").removeClass("has-options" + GAME_ENCRYPT)
-        $("#current_clues").removeClass("drawn0 drawn1")
+    $("#used_clues_cur").removeClass("has-options" + GAME_ENCRYPT)
+    $("#current_clues").removeClass("drawn0 drawn1")

@@ -11,8 +11,7 @@ db = mongoose.connect(db_url)
 GAME_LOBBY         = 0
 GAME_PREGAME       = 1
 GAME_ENCRYPT       = 2
-GAME_DECRYPT_RED   = 3
-GAME_DECRYPT_BLUE  = 4
+GAME_DECRYPT       = 3
 GAME_PRE_FINISHED  = 8
 GAME_FINISHED      = 9
 
@@ -224,12 +223,7 @@ gameSchema.methods.check_for_game_end = () ->
     else if blue_win
         this.winningTeam = TEAM_BLUE
 
-    if this.round >= 8 || red_win || blue_win
-        this.state = GAME_PRE_FINISHED
-        this.timeLimit = 0
-        return true
-    else
-        return false
+    return this.round >= 8 || red_win || blue_win
 
 gameSchema.methods.time_left = ->
     round_time = Math.floor ((Date.now() - this.roundStart) / 1000)
@@ -279,16 +273,29 @@ gameSchema.methods.make_guess = (state_team, code, p_team) ->
     m["guess"+p_team].code = deep_copy(code)
     m["guess"+p_team].finished = true
 
-    if m["guess"+other_team p_team].finished
-        code = this["codes"+state_team][round]
-        if not arraysEqual(m["guess"+state_team].code, code)
-            this.score[state_team].miscommunications += 1
-        if arraysEqual(m["guess"+other_team state_team].code, code)
-            this.score[other_team state_team].intercepts += 1
-        return true
-    else
-        this.reset_timer(this.gameOptions.decrypt_time_limit)
-        return false
+gameSchema.methods.finished_guessing = (team) ->
+    round = this.round - 1
+    finished = true
+    for i in TEAMS
+        finished = finished && this["messages"+i][round]["guess"+team].finished
+    return finished
+
+gameSchema.methods.both_finished_guessing = () ->
+    round = this.round - 1
+    finished = true
+    for i in TEAMS
+        finished = finished && this.finished_guessing(i)
+    return finished
+
+gameSchema.methods.finish_decryption = () ->
+    round = this.round - 1
+    for i in TEAMS
+        m = this["messages"+i][round]
+        code = this["codes"+i][round]
+        if not arraysEqual(m["guess"+i].code, code)
+            this.score[i].miscommunications += 1
+        if arraysEqual(m["guess"+other_team i].code, code)
+            this.score[other_team i].intercepts += 1
 
 Game = mongoose.model('Game', gameSchema)
 
