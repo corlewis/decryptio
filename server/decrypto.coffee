@@ -629,6 +629,29 @@ io.on 'connection', (socket) ->
             send_game_info(game)
 
 
+    socket.on 'force_end_guess_words', () ->
+        player = socket.player
+        return if not player
+        Game.findById player.currentGame, (err, game) ->
+            return if err || not game
+
+            time_left = game.time_left()
+            p = game.get_player(player._id)
+            team = p.team
+            if time_left > 0 || game.state != GAME_PRE_FINISHED ||
+               game.tiedFinish[team].length == 0 ||
+               game.tiedFinish[other_team team].length > 0
+                return
+
+            for [0...game.gameOptions.num_words]
+                game.tiedFinish[other_team team].push ""
+
+            game.state = GAME_FINISHED
+            game.save((err) =>
+                if err then console.log(err))
+            send_game_info(game)
+
+
     socket.on 'leavegame', () ->
         socket.join('lobby')
         player = socket.player

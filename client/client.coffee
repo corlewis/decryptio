@@ -789,6 +789,8 @@ jQuery ->
             socket.emit 'force_end_encrypt'
         else if force_end_state in [GAME_DECRYPT_RED, GAME_DECRYPT_BLUE]
             socket.emit 'force_end_decrypt'
+        else if force_end_state == GAME_PRE_FINISHED
+            socket.emit 'force_end_guess_words'
 
     $("#btn_force_end_cancel").on 'click', (e) ->
         $("#force_end_confirm").hide()
