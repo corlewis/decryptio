@@ -4,7 +4,7 @@
   "description": "Websocket implementation of Decrypto",
   "main": "decryptio.js",
   "dependencies": {
-    "bcrypt": "^0.8.5",
+    "bcrypt": "^5.0.0",
     "express": "^4.13.3",
     "mongoose": "^4.3.4",
     "q": "^1.4.1",
